@@ -9,7 +9,7 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class VertexBuffer
     {
-        private SharpDX.Direct3D11.Buffer _buffer;
+        public SharpDX.Direct3D11.Buffer _buffer;
 
         private SharpDX.Direct3D11.Buffer _cachedStagingBuffer;
 
@@ -22,7 +22,7 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-        private void PlatformConstruct()
+        public void PlatformConstruct()
         {
             GenerateIfRequired();
         }
@@ -49,13 +49,36 @@ namespace Microsoft.Xna.Framework.Graphics
                 usage = SharpDX.Direct3D11.ResourceUsage.Dynamic;
             }
 
+            int structureSizeInBytes = 0;
+            var bindFlags = SharpDX.Direct3D11.BindFlags.VertexBuffer;
+            var resourceOptionFlags = SharpDX.Direct3D11.ResourceOptionFlags.None;
+
+            if ((BufferUsageCompute & BufferUsageCompute.Compute) != 0)
+            {
+                bindFlags = SharpDX.Direct3D11.BindFlags.UnorderedAccess;
+                // bindFlags |= SharpDX.Direct3D11.BindFlags.UnorderedAccess;
+                if ((BufferUsageCompute & BufferUsageCompute.ShaderResource) != 0)
+                    bindFlags |= SharpDX.Direct3D11.BindFlags.ShaderResource;
+                if ((BufferUsageCompute & BufferUsageCompute.RawBuffer) != 0)
+                    resourceOptionFlags |= SharpDX.Direct3D11.ResourceOptionFlags.BufferAllowRawViews;
+                if ((BufferUsageCompute & BufferUsageCompute.IndirectArgsBuffer) != 0)
+                    resourceOptionFlags |= SharpDX.Direct3D11.ResourceOptionFlags.DrawIndirectArguments;
+                if ((BufferUsageCompute & BufferUsageCompute.StructuredBuffer) != 0)
+                {
+                    resourceOptionFlags |= SharpDX.Direct3D11.ResourceOptionFlags.BufferStructured;
+                    structureSizeInBytes = VertexDeclaration.VertexStride;
+                }
+                if ((BufferUsageCompute & BufferUsageCompute.CpuAccess) != 0)
+                    accessflags |= SharpDX.Direct3D11.CpuAccessFlags.Read;
+            }
+
             _buffer = new SharpDX.Direct3D11.Buffer(GraphicsDevice._d3dDevice,
                                                         VertexDeclaration.VertexStride * VertexCount,
                                                         usage,
-                                                        SharpDX.Direct3D11.BindFlags.VertexBuffer,
+                                                        bindFlags,
                                                         accessflags,
-                                                        SharpDX.Direct3D11.ResourceOptionFlags.None,
-                                                        0  // StructureSizeInBytes
+                                                        resourceOptionFlags,
+                                                        structureSizeInBytes
                                                         );
         }
 

@@ -32,6 +32,11 @@ namespace Microsoft.Xna.Framework.Graphics
         internal SharpDX.Direct3D11.DepthStencilView _depthStencilView;
         private int _vertexBufferSlotsUsed;
 
+        public IntPtr GetNativeDxRenderTargetResource()
+        {
+            return _renderTargetView.Resource.NativePointer;
+        }
+
 #if WINDOWS_UAP
 
         // Declare Direct2D Objects
@@ -1433,6 +1438,25 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
+        public void DrawIndexedInstancedIndirect(PrimitiveType primitiveType, VertexBuffer bufferForArgsRef, int alignedByteOffsetForArgs)
+        {
+            if (_vertexShader == null)
+                throw new InvalidOperationException("Vertex shader must be set before calling DrawIndexedInstancedIndirect.");
+
+            if (_vertexBuffers.Count == 0)
+                throw new InvalidOperationException("Vertex buffer must be set before calling DrawIndexedInstancedIndirect.");
+
+            if (_indexBuffer == null)
+                throw new InvalidOperationException("Index buffer must be set before calling DrawIndexedInstancedIndirect.");
+
+            PlatformDrawInstancedPrimitivesIndirect(primitiveType, bufferForArgsRef, alignedByteOffsetForArgs);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+            }
+        }
+
         private void PlatformDrawUserPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, VertexDeclaration vertexDeclaration, int vertexCount) where T : struct
         {
             var startVertex = SetUserVertexBuffer(vertexData, vertexOffset, vertexCount, vertexDeclaration);
@@ -1497,6 +1521,17 @@ namespace Microsoft.Xna.Framework.Graphics
                 _d3dContext.InputAssembler.PrimitiveTopology = ToPrimitiveTopology(primitiveType);
                 int indexCount = GetElementCountArray(primitiveType, primitiveCount);
                 _d3dContext.DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, baseInstance);
+            }
+        }
+
+        private void PlatformDrawInstancedPrimitivesIndirect(PrimitiveType primitiveType, VertexBuffer instanceBuffer, int alignedByteOffsetForArgs)
+        {
+            lock (_d3dContext)
+            {
+                ApplyState(true);
+
+                _d3dContext.InputAssembler.PrimitiveTopology = ToPrimitiveTopology(primitiveType);
+                _d3dContext.DrawIndexedInstancedIndirect(instanceBuffer.Buffer, alignedByteOffsetForArgs);
             }
         }
 

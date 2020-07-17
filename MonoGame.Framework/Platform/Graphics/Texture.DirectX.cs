@@ -13,6 +13,13 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private ShaderResourceView _resourceView;
 
+        public void CreateMipmaps()
+        {
+            var context = GraphicsDevice._d3dContext;
+            lock (context)
+                context.GenerateMips(GetShaderResourceView());
+        }
+
         /// <summary>
         /// Gets the handle to a shared resource.
         /// </summary>
@@ -36,7 +43,7 @@ namespace Microsoft.Xna.Framework.Graphics
             return _texture;
         }
 
-        internal ShaderResourceView GetShaderResourceView()
+        public ShaderResourceView GetShaderResourceView()
         {
             if (_resourceView == null)
                 _resourceView = new ShaderResourceView(GraphicsDevice._d3dDevice, GetTexture());
