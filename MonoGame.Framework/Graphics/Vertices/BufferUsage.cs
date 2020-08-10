@@ -18,4 +18,16 @@ namespace Microsoft.Xna.Framework.Graphics
         /// </summary>
         WriteOnly
     }
+
+    [System.Flags]
+    public enum BufferUsageCompute
+    {
+        NoCompute = 0,
+        Compute = 1,
+        CpuAccess = 2,
+        RawBuffer = 4,
+        ShaderResource = 8,
+        StructuredBuffer = 16,
+        IndirectArgsBuffer = 32,
+    }
 }

@@ -12,9 +12,9 @@ namespace Microsoft.Xna.Framework.Graphics
         private readonly Shader _domainShader;
         private readonly Shader _geometryShader;
 
-        private readonly BlendState _blendState;
-        private readonly DepthStencilState _depthStencilState;
-        private readonly RasterizerState _rasterizerState;
+        public readonly BlendState _blendState;
+        public readonly DepthStencilState _depthStencilState;
+        public readonly RasterizerState _rasterizerState;
 
 		public string Name { get; private set; }
 
