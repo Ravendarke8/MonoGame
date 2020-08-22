@@ -5,7 +5,7 @@
 using System;
 using System.IO;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Framework.Content.Pipeline.Utilities;
+using MonoGame.Framework.Utilities;
 
 namespace MonoGame.Effect
 {
@@ -33,6 +33,9 @@ namespace MonoGame.Effect
             using (MemoryStream memStream = new MemoryStream())
             using (BinaryWriterEx memWriter = new BinaryWriterEx(memStream))
             {
+                // Write MojoShader flag
+                memWriter.Write(options.IsDefined("MOJO"));
+
                 // Write all the constant buffers.
                 memWriter.Write((byte)ConstantBuffers.Count);
                 foreach (var cbuffer in ConstantBuffers)
@@ -138,7 +141,7 @@ namespace MonoGame.Effect
 
                 // Calculate a hash code from memory stream
                 // and write it to the header.
-                var effectKey = MonoGame.Utilities.Hash.ComputeHash(memStream);
+                var effectKey = MonoGame.Framework.Utilities.Hash.ComputeHash(memStream);
                 writer.Write((Int32)effectKey);
 
                 //write content from memory stream to final stream.
