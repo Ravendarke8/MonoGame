@@ -73,14 +73,14 @@ namespace MonoGame.Effect
             string newWorkingDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             // Change working directory, otherwise ShaderConductor can't load dlls
-            System.IO.Directory.SetCurrentDirectory(newWorkingDir); 
+            System.IO.Directory.SetCurrentDirectory(newWorkingDir);
 
             ShaderConductor.Compile(ref sourceDesc, ref options, ref target, out ShaderConductor.ResultDesc result);
 
             System.IO.Directory.SetCurrentDirectory(previousWorkingDir); 
 
             //==============================================================
-            // Handle compiler result
+            // Handle compiler errors
             //==============================================================
             if (result.hasError)
             {
@@ -104,13 +104,30 @@ namespace MonoGame.Effect
                 //==============================================================
                 // Apply some fixes to the GLSL code, then add it to shaderData
                 //==============================================================
-                if (isESSL)
+
+                // version header for old OpenGL versions can make OpenGL ES crash.
+                if (isESSL && !glslVersion.Contains("es"))
                     GLSLManipulator.RemoveVersionHeader(ref glsl);
+
+                // remove separate shader objects extension requirement for OpenGL 2
+                if (glslVersion.StartsWith("10") ||
+                    glslVersion.StartsWith("11") ||
+                    glslVersion.StartsWith("12"))
+                    GLSLManipulator.RemoveARBSeparateShaderObjects(ref glsl);
 
                 if (shaderStage == ShaderStage.VertexShader)
                 {
-                    GLSLManipulator.RemoveGlPerVertex(ref glsl);
+                    // OpenGL doesn't like the gl_PerVertex declaration.
+                    GLSLManipulator.RemoveOutGlPerVertex(ref glsl);
+                    // Add posFixup code, so we can compensate for differences btw DirectX and OpenGL
                     GLSLManipulator.AddPosFixupUniformAndCode(ref glsl);
+                }
+
+                if (shaderStage == ShaderStage.GeometryShader ||
+                    shaderStage == ShaderStage.HullShader)
+                {
+                    // OpenGL doesn't like the gl_PerVertex declaration.
+                    GLSLManipulator.RemoveInGlPerVertex(ref glsl);
                 }
 
                 shaderData.ShaderCode = Encoding.ASCII.GetBytes(glsl);
@@ -174,11 +191,11 @@ namespace MonoGame.Effect
                     shaderData._samplers[i].samplerName = samplers[i].name;
                     shaderData._samplers[i].parameterName = samplers[i].textureName;
                     shaderData._samplers[i].samplerSlot = samplers[i].slot;
-                    shaderData._samplers[i].textureSlot = samplers[i].slot;
+                    shaderData._samplers[i].textureSlot = samplers[i].textureSlot;
                     shaderData._samplers[i].type = ConvertSamplerTypeToMojo(samplers[i]);
                     shaderData._samplers[i].parameter = -1; //sampler mapping to parameter is unknown atm
 
-                    if (samplerStates.TryGetValue(samplers[i].parameterName, out SamplerStateInfo state))
+                    if (samplerStates.TryGetValue(samplers[i].originalName, out SamplerStateInfo state))
                         shaderData._samplers[i].state = state.State;
                 }
             }

@@ -12,7 +12,7 @@ namespace Microsoft.Xna.Framework.Graphics
         private ShaderProgram _shaderProgram = null;
         private int _glBuffer = -1;
         private int _globalsArrayLocationMojo;  // MojoShader uses one big float4 array for all parameters
-        private int[] _parameterLocations = null; // If uniform buffers are not available parameters need to be updated individually
+        private string[] _parameterShaderNames = null; // If uniform buffers are not available parameters need to be updated individually by name 
 
         static ConstantBuffer _lastConstantBufferApplied = null;
 
@@ -80,7 +80,7 @@ namespace Microsoft.Xna.Framework.Graphics
             }
             else 
             {
-                int uniformBlockIndex = GL.GetUniformBlockIndex(program.Program, _name);
+                int uniformBlockIndex = GL.GetUniformBlockIndex == null ? -1 : GL.GetUniformBlockIndex(program.Program, _name);
                 GraphicsExtensions.CheckGLError();
 
                 if (uniformBlockIndex >= 0)
@@ -109,45 +109,59 @@ namespace Microsoft.Xna.Framework.Graphics
 
         private unsafe void UpdateParametersIndividually(ShaderProgram program)
         {
-            if (_parameterLocations == null)
+            if (_parameterShaderNames == null)
             {
-                _parameterLocations = new int[_parameters.Length];
+                _parameterShaderNames = new string[_parameters.Length];
 
                 for (int i = 0; i < _parameters.Length; i++)
                 {
                     int paramIndex = _parameters[i];
                     var param = _effect.Parameters[paramIndex];
-                    _parameterLocations[i] = program.GetUniformLocation(_instanceName + "." + param.Name); 
+
+                    _parameterShaderNames[i] = _instanceName + "." + param.Name;
+
+                    //if (param.Elements.Count > 1) // array
+                    //    _parameterShaderNames[i] += "[0]";
                 }
             }
 
             for (int i = 0; i < _parameters.Length; i++)
             {
-                int location = _parameterLocations[i];
-                if (location < 0)
-                    continue;
-
                 int paramIndex = _parameters[i];
                 var param = _effect.Parameters[paramIndex];
 
-                fixed (byte* bytePtr = &_buffer[_offsets[paramIndex]])
+                if (param.ParameterType == EffectParameterType.Texture ||
+                    param.ParameterType == EffectParameterType.Texture1D ||
+                    param.ParameterType == EffectParameterType.Texture2D ||
+                    param.ParameterType == EffectParameterType.Texture3D ||
+                    param.ParameterType == EffectParameterType.TextureCube ||
+                    param.Elements.Count > 0)   // no arrays for now
+                    continue;
+
+                int location = program.GetUniformLocation(_parameterShaderNames[i]);
+                if (location < 0)
+                    continue;
+
+                if (param.ParameterType == EffectParameterType.Int32 || param.ParameterType == EffectParameterType.Bool)
                 {
-                    if (param.ParameterType == EffectParameterType.Int32 || param.ParameterType == EffectParameterType.Bool)
-                        GL.Uniform1i(location, *(int*)bytePtr);
-                    else
+                    GL.Uniform1i(location, ((int[])param.Data)[0]);
+                }
+                else
+                {
+                    fixed (float* floatPtr = &((float[])param.Data)[0])
                     {
                         switch (param.ParameterClass)
                         {
                             case EffectParameterClass.Scalar:
-                                GL.Uniform1fv(location, 1, (float*)bytePtr);
+                                GL.Uniform1fv(location, 1, floatPtr);
                                 break;
 
                             case EffectParameterClass.Vector:
                                 switch (param.ColumnCount)
                                 {
-                                    case 2: GL.Uniform2fv(location, 1, (float*)bytePtr); break;
-                                    case 3: GL.Uniform3fv(location, 1, (float*)bytePtr); break;
-                                    case 4: GL.Uniform4fv(location, 1, (float*)bytePtr); break;
+                                    case 2: GL.Uniform2fv(location, 1, floatPtr); break;
+                                    case 3: GL.Uniform3fv(location, 1, floatPtr); break;
+                                    case 4: GL.Uniform4fv(location, 1, floatPtr); break;
                                 }
                                 break;
 
@@ -157,25 +171,25 @@ namespace Microsoft.Xna.Framework.Graphics
                                     case 2:
                                         switch (param.ColumnCount)
                                         {
-                                            case 2: GL.UniformMatrix2fv  (location, 1, false, (float*)bytePtr); break;
-                                            case 3: GL.UniformMatrix2x3fv(location, 1, false, (float*)bytePtr); break;
-                                            case 4: GL.UniformMatrix2x4fv(location, 1, false, (float*)bytePtr); break;
+                                            case 2: GL.UniformMatrix2fv(location, 1, false, floatPtr); break;
+                                            case 3: GL.UniformMatrix2x3fv(location, 1, false, floatPtr); break;
+                                            case 4: GL.UniformMatrix2x4fv(location, 1, false, floatPtr); break;
                                         }
                                         break;
                                     case 3:
                                         switch (param.ColumnCount)
                                         {
-                                            case 2: GL.UniformMatrix3x2fv(location, 1, false, (float*)bytePtr); break;
-                                            case 3: GL.UniformMatrix3fv  (location, 1, false, (float*)bytePtr); break;
-                                            case 4: GL.UniformMatrix3x4fv(location, 1, false, (float*)bytePtr); break;
+                                            case 2: GL.UniformMatrix3x2fv(location, 1, false, floatPtr); break;
+                                            case 3: GL.UniformMatrix3fv(location, 1, false, floatPtr); break;
+                                            case 4: GL.UniformMatrix3x4fv(location, 1, false, floatPtr); break;
                                         }
                                         break;
                                     case 4:
                                         switch (param.ColumnCount)
                                         {
-                                            case 2: GL.UniformMatrix4x2fv(location, 1, false, (float*)bytePtr); break;
-                                            case 3: GL.UniformMatrix4x3fv(location, 1, false, (float*)bytePtr); break;
-                                            case 4: GL.UniformMatrix4fv  (location, 1, false, (float*)bytePtr); break;
+                                            case 2: GL.UniformMatrix4x2fv(location, 1, false, floatPtr); break;
+                                            case 3: GL.UniformMatrix4x3fv(location, 1, false, floatPtr); break;
+                                            case 4: GL.UniformMatrix4fv(location, 1, false, floatPtr); break;
                                         }
                                         break;
                                 }

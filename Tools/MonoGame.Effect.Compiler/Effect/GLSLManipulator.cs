@@ -11,7 +11,6 @@ namespace MonoGame.Effect
 
         public static void RemoveVersionHeader(ref string glsl)
         {
-            // version header can make OpenGL crash.
             int version = glsl.IndexOf("#version");
             if (version >= 0)
             {
@@ -20,10 +19,20 @@ namespace MonoGame.Effect
             }
         }
 
-        public static void RemoveGlPerVertex(ref string glsl)
+        public static void RemoveARBSeparateShaderObjects(ref string glsl)
         {
-            // The gl_PerVertex declaration can make OpenGL crash.
+            glsl = glsl.Replace("#extension GL_ARB_separate_shader_objects : require\n", "");
+        }
+
+        public static void RemoveOutGlPerVertex(ref string glsl)
+        {
             string gl_PerVertex = "\nout gl_PerVertex\n{\n    vec4 gl_Position;\n};\n";
+            glsl = glsl.Replace(gl_PerVertex, "");
+        }
+
+        public static void RemoveInGlPerVertex(ref string glsl)
+        {
+            string gl_PerVertex = "\nin gl_PerVertex\n{\n    vec4 gl_Position;\n};\n";
             glsl = glsl.Replace(gl_PerVertex, "");
         }
 
@@ -46,7 +55,7 @@ namespace MonoGame.Effect
                 // The final change to gl_Position.z is needed because OpenGL uses a -1..1 clipspace, while DX uses 0..1
                 string posFixupCode =
                 "    gl_Position.y = gl_Position.y * posFixup.y;\n" +
-                "gl_Position.xy += posFixup.zw * gl_Position.ww;\n" +
+                "    gl_Position.xy += posFixup.zw * gl_Position.ww;\n" +
                 "    gl_Position.z = gl_Position.z * 2.0 - gl_Position.w;\n";
 
                 // the assumption here is that the final closing brace belongs to the main vertex shader function, let's hope for the best.
