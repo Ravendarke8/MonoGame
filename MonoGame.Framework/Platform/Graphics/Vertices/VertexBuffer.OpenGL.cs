@@ -129,7 +129,7 @@ namespace Microsoft.Xna.Framework.Graphics
                 GraphicsExtensions.CheckGLError();
             }
 
-            var elementSizeInByte = Marshal.SizeOf(typeof(T));
+            var elementSizeInByte = elementSizeInBytes > 0 ? elementSizeInBytes : Marshal.SizeOf(typeof(T));
             if (elementSizeInByte == vertexStride || elementSizeInByte % vertexStride == 0)
             {
                 // there are no gaps so we can copy in one go
