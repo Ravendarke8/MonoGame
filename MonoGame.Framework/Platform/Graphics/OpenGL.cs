@@ -501,6 +501,7 @@ namespace MonoGame.OpenGL
     {
         TextureMaxAnisotropyExt = 0x84FE,
         TextureBaseLevel = 0x813C,
+        TextureMaxLOD = 0x813B,
         TextureMaxLevel = 0x813D,
         TextureMinFilter = 0x2801,
         TextureMagFilter = 0x2800,
@@ -672,6 +673,42 @@ namespace MonoGame.OpenGL
         [MonoNativeFunctionWrapper]
         internal delegate void BindTextureDelegate(TextureTarget target, int id);
         internal static BindTextureDelegate BindTexture;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void GenSamplersDelegate(int count, [Out] out int id);
+        internal static GenSamplersDelegate GenSamplers;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal unsafe delegate void DeleteSamplersDelegate(int count, int* sampler);
+        internal static DeleteSamplersDelegate DeleteSamplers;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void BindSamplerDelegate(int textureUnit, int sampler);
+        internal static BindSamplerDelegate BindSampler;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void SamplerParameteriDelegate(int sampler, TextureParameterName name, int value);
+        internal static SamplerParameteriDelegate SamplerParameteri;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void SamplerParameterfDelegate(int sampler, TextureParameterName name, float value);
+        internal static SamplerParameterfDelegate SamplerParameterf;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal unsafe delegate void SamplerParameterfvDelegate(int sampler, TextureParameterName name, float* values);
+        internal static SamplerParameterfvDelegate SamplerParameterfv;
 
         [System.Security.SuppressUnmanagedCodeSecurity()]
         [UnmanagedFunctionPointer(callingConvention)]
@@ -1600,6 +1637,15 @@ namespace MonoGame.OpenGL
             if (GL.GetUniformBlockIndex == null && Extensions.Contains("GL_ARB_uniform_buffer_object"))
             {
                 GL.GetUniformBlockIndex = LoadFunction<GL.GetUniformBlockIndexDelegate>("glGetUniformBlockIndex");
+            }
+            if (GL.GenSamplers == null && Extensions.Contains("GL_ARB_sampler_objects"))
+            {
+                GenSamplers = LoadFunction<GL.GenSamplersDelegate>("glGenSamplers");
+                DeleteSamplers = LoadFunction<GL.DeleteSamplersDelegate>("glDeleteSamplers");
+                BindSampler = LoadFunction<GL.BindSamplerDelegate>("glBindSampler");
+                SamplerParameteri = LoadFunction<GL.SamplerParameteriDelegate>("glSamplerParameteri");
+                SamplerParameterf = LoadFunction<GL.SamplerParameterfDelegate>("glSamplerParameterf");
+                SamplerParameterfv = LoadFunction<GL.SamplerParameterfvDelegate>("glSamplerParameterfv");
             }
         }
 

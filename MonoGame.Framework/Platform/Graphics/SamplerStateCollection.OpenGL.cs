@@ -38,7 +38,19 @@ namespace Microsoft.Xna.Framework.Graphics
                     GL.BindTexture(texture.glTarget, texture.glTexture);
                     GraphicsExtensions.CheckGLError();
 
-                    samplerState.Activate(device, texture.glTarget, texture.LevelCount > 1);
+                    int glSampler = samplerState.GetGLSampler(device, texture.LevelCount > 1);
+                    if (glSampler >= 0)
+                    {
+                        GL.BindSampler(samplerInfo.samplerSlot, glSampler);
+                        GraphicsExtensions.CheckGLError();
+                    }
+                    else
+                    {
+                        // Sampler objects are not supported -> use the old method where sampler parameters are set directly on the texture.
+                        // The problem with this method is that you can't sample from the same texture using different samplers.
+                        // The second sampler will overwrite the first sampler, because they both go to the same texture. 
+                        samplerState.Activate(device, texture.glTarget, texture.LevelCount > 1);
+                    }
 
                     unchecked
                     {
