@@ -1,14 +1,14 @@
-﻿using Microsoft.Win32;
-using MonoGame.Tools.Pipeline.Utilities;
 using System;
-using System.Diagnostics;
+using System.CommandLine.Invocation;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
+using Microsoft.Win32;
+using Process = System.Diagnostics.Process;
 
-namespace MonoGame.Tools.Pipeline
+namespace MonoGame.Content.Builder.Editor.Launcher
 {
     [ComImport]
     [Guid("00021401-0000-0000-C000-000000000046")]
@@ -41,7 +41,7 @@ namespace MonoGame.Tools.Pipeline
         void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
     }
 
-    public static class FileAssociation
+    public class WindowsPlatform : IPlatform
     {
         // Used to refresh Explorer windows after the registry is updated.
         [DllImport("Shell32.dll")]
@@ -56,86 +56,72 @@ namespace MonoGame.Tools.Pipeline
         private const string verb = "open";
         private const string commandText = "Open with MGCB Editor";
 
-        private readonly static string startMenuLink = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "MGCB Editor.lnk");
+        private readonly static string _executablePath = Path.Combine(Path.GetDirectoryName(typeof(WindowsPlatform).Assembly.Location), "mgcb-editor-windows", "mgcb-editor-windows.exe");
+        private readonly static string _startMenuLink = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs", "MGCB Editor.lnk");
 
-        public static void Associate()
+        public void Register(InvocationContext context)
         {
-            // Resolve a dotnet ProcessStartInfo to get the commands and arguments to register.
-            var assembly = Assembly.GetExecutingAssembly();
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = assembly.GetName().Name,
-                Arguments = "\"%1\""
-            }.ResolveDotnetApp();
-            var command = $"\"{startInfo.FileName}\" {startInfo.Arguments}";
-            var iconPath = $"{assembly.Location},0";
+            var command = $"\"{_executablePath}\" \"%1\"";
+            var iconPath = $"{_executablePath},0";
+
+            var link = (IShellLink)new ShellLink();
+            link.SetPath(_executablePath);
+            ((IPersistFile)link).Save(_startMenuLink, false);
 
             SetWindowsAssociation(extension, progId, fileTypeDescription, iconPath, verb, commandText, command);
             RefreshEnvironment();
-
-            var link = (IShellLink)new ShellLink();
-            link.SetPath(Path.Combine(Path.GetDirectoryName(typeof(FileAssociation).Assembly.Location), "mgcb-editor-wpf.exe"));
-            ((IPersistFile)link).Save(startMenuLink, false);
         }
 
-        public static void Unassociate()
+        public void Unregister(InvocationContext context)
         {
+            if (File.Exists(_startMenuLink))
+                File.Delete(_startMenuLink);
+
             UnsetWindowsAssociation(extension, progId);
             RefreshEnvironment();
-
-            File.Delete(startMenuLink);
         }
 
-        private static bool SetWindowsAssociation(string extension, string progId, string fileTypeDescription, string icon, string verb, string commandText, string command)
+        public void Run(InvocationContext context, string project)
         {
-            var madeChanges = false;
-            Console.WriteLine($"Associating MGCB Editor with .{extension} extension in Windows...");
-            madeChanges |= SetRegistryKey($@"Software\Classes\.{extension}", null, progId);
-            madeChanges |= SetRegistryKey($@"Software\Classes\{progId}", null, fileTypeDescription);
-            madeChanges |= SetRegistryKey($@"Software\Classes\{progId}\DefaultIcon", null, icon);
-            madeChanges |= SetRegistryKey($@"Software\Classes\{progId}\shell", null, verb);
-            madeChanges |= SetRegistryKey($@"Software\Classes\{progId}\shell\{verb}", null, commandText);
-            madeChanges |= SetRegistryKey($@"Software\Classes\{progId}\shell\{verb}\command", null, command);
-            Console.WriteLine(madeChanges ? $"Association complete!" : "Already associated.");
-            return madeChanges;
+            Process.Start(_executablePath, $"\"{project}\"");
         }
 
-        private static bool UnsetWindowsAssociation(string extension, string progId)
+        private static void SetWindowsAssociation(string extension, string progId, string fileTypeDescription, string icon, string verb, string commandText, string command)
         {
-            var madeChanges = false;
-            Console.WriteLine($"Unassociating MGCB Editor with .{extension} extension in Windows...");
-            madeChanges |= DeleteRegistryKeyTree($@"Software\Classes\.{extension}");
-            madeChanges |= DeleteRegistryKeyTree($@"Software\Classes\{progId}");
-            Console.WriteLine(madeChanges ? $"Unassociation complete!" : "No association found.");
-            return madeChanges;
+            SetRegistryKey($@"Software\Classes\.{extension}", null, progId);
+            SetRegistryKey($@"Software\Classes\{progId}", null, fileTypeDescription);
+            SetRegistryKey($@"Software\Classes\{progId}\DefaultIcon", null, icon);
+            SetRegistryKey($@"Software\Classes\{progId}\shell", null, verb);
+            SetRegistryKey($@"Software\Classes\{progId}\shell\{verb}", null, commandText);
+            SetRegistryKey($@"Software\Classes\{progId}\shell\{verb}\command", null, command);
         }
 
-        private static bool SetRegistryKey<T>(string keyPath, string name, T value, RegistryValueKind valueKind = RegistryValueKind.String)
+        private static void UnsetWindowsAssociation(string extension, string progId)
+        {
+            DeleteRegistryKeyTree($@"Software\Classes\.{extension}");
+            DeleteRegistryKeyTree($@"Software\Classes\{progId}");
+        }
+
+        private static void SetRegistryKey<T>(string keyPath, string name, T value, RegistryValueKind valueKind = RegistryValueKind.String)
         {
             using (var key = Registry.CurrentUser.CreateSubKey(keyPath))
             {
                 if (!value.Equals(key.GetValue(name)))
                 {
                     key.SetValue(name, value, valueKind);
-                    return true;
                 }
             }
-
-            return false;
         }
 
-        private static bool DeleteRegistryKeyTree(string keyPath)
+        private static void DeleteRegistryKeyTree(string keyPath)
         {
             using (var key = Registry.CurrentUser.OpenSubKey(keyPath))
             {
                 if (key != null)
                 {
                     Registry.CurrentUser.DeleteSubKeyTree(keyPath);
-                    return true;
                 }
             }
-
-            return false;
         }
 
         private static void RefreshEnvironment()

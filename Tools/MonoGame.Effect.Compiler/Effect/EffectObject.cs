@@ -773,7 +773,7 @@ namespace MonoGame.Effect
 
             // In OpenGL, when a single sampler samples from multiple textures, we have to create separate samplers for every texture.
             if (shaderResult.Profile is OpenGLShaderProfile profileGL)
-                profileGL.MakSeparateSamplersForDifferentTextures(effect.Shaders);
+                profileGL.MakeSeparateSamplersForDifferentTextures(effect.Shaders);
 
             // Make the list of parameters by combining all the
             // constant buffers ignoring the buffer offsets.

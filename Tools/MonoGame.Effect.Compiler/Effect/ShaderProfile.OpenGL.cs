@@ -118,7 +118,8 @@ namespace MonoGame.Effect
                     shaderStage, shaderFunction,
                     smMajor, smMinor, smExtension,
                     effect.ConstantBuffers, shaderInfo.SamplerStates,
-                    shaderResult.Debug, IsESSL);
+                    shaderResult.Debug, IsESSL,
+                    ref errorsAndWarnings);
 
                 // See if we already created this same shader.
                 foreach (var shader in effect.Shaders)
@@ -132,7 +133,7 @@ namespace MonoGame.Effect
             }
         }
 
-        internal void MakSeparateSamplersForDifferentTextures(List<ShaderData> shaders)
+        internal void MakeSeparateSamplersForDifferentTextures(List<ShaderData> shaders)
         {
             // MojoShader handles this differently
             if (_useMojo)
@@ -170,7 +171,7 @@ namespace MonoGame.Effect
                                 // We have to find a new free sampler slot, but only in the 2nd pass. 
                                 if (pass == 1)
                                 {
-                                    uniqueSamplerSlot = 0;
+                                    uniqueSamplerSlot = 1;
                                     while (samplerSlotMapping.ContainsValue(uniqueSamplerSlot))
                                         uniqueSamplerSlot++;
 
@@ -180,8 +181,8 @@ namespace MonoGame.Effect
                         }
 
                         // assign new slots in 2nd pass
-                        if (pass == 1)  
-                            sampler.samplerSlot = uniqueSamplerSlot;
+                        if (pass == 1)
+                            shader._samplers[i].samplerSlot = uniqueSamplerSlot;
                     }
                 }
             }
