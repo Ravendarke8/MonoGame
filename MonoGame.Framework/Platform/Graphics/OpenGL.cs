@@ -19,6 +19,8 @@ namespace MonoGame.OpenGL
     internal enum BufferAccess
     {
         ReadOnly = 0x88B8,
+        WriteOnly = 0x88B9,
+        ReadWrite = 0x88BA,
     }
 
     internal enum BufferUsageHint
@@ -45,6 +47,7 @@ namespace MonoGame.OpenGL
         TesselationControlShader = 0x8E88,
         TesselationEvaluationShader = 0x8E87,
         GeometryShader = 0x8DD9,
+        ComputeShader = 0x91B9,
     }
 
     internal enum ShaderParameter
@@ -132,6 +135,9 @@ namespace MonoGame.OpenGL
         ArrayBuffer = 0x8892,
         ElementArrayBuffer = 0x8893,
         UniformBuffer = 0x8A11,
+        ShaderStorageBuffer = 0x90D2,
+        IndirectDrawBuffer = 0x8F3F,
+        IndirectDispatchBuffer = 0x90EE,
     }
 
     internal enum RenderbufferTarget
@@ -157,6 +163,11 @@ namespace MonoGame.OpenGL
         DepthComponent24Oes = 0x81A6,
         Depth24Stencil8Oes = 0x88F0,
         StencilIndex8 = 0x8D48,
+    }
+
+    internal enum ProgramInterface
+    {
+        ShaderStorageBlock = 0x92E6,
     }
 
     internal enum EnableCap : int
@@ -395,6 +406,7 @@ namespace MonoGame.OpenGL
         TextureCubeMapNegativeX = 0x8516,
         TextureCubeMapNegativeY = 0x8518,
         TextureCubeMapNegativeZ = 0x851A,
+        TextureBuffer = 0x8C2A,
     }
 
     internal enum PixelInternalFormat
@@ -402,6 +414,7 @@ namespace MonoGame.OpenGL
         Rgba = 0x1908,
         Rgb = 0x1907,
         Rgba4 = 0x8056,
+        Rgba8 = 0x8058,
         Luminance = 0x1909,
         CompressedRgbS3tcDxt1Ext = 0x83F0,
         CompressedSrgbS3tcDxt1Ext = 0x8C4C,
@@ -422,6 +435,7 @@ namespace MonoGame.OpenGL
         Rgba16ui = 0x8D76,
         Rgb10A2ui = 0x906F,
         Rgba16 = 0x805B,
+        Rgb5A1  = 0x8057,
         // PVRTC
         CompressedRgbPvrtc2Bppv1Img = 0x8C01,
         CompressedRgbPvrtc4Bppv1Img = 0x8C00,
@@ -433,7 +447,7 @@ namespace MonoGame.OpenGL
         // ETC1
         Etc1 = 0x8D64,
         Srgb = 0x8C40,
-
+        Srgb8 = 0x8C41,
         // ETC2 RGB8A1
         Etc2Rgb8 = 0x9274,
         Etc2Srgb8 = 0x9275,
@@ -554,6 +568,13 @@ namespace MonoGame.OpenGL
     internal enum PatchParameterName
     {
         PatchVertices = 0x8E72,
+    }
+
+    [Flags]
+    internal enum MemoryBarrierBits : uint
+    {
+        ShaderStorage = 0x00002000,
+        All = 0xFFFFFFFF,
     }
 
     internal partial class ColorFormat
@@ -874,6 +895,12 @@ namespace MonoGame.OpenGL
         [System.Security.SuppressUnmanagedCodeSecurity()]
         [UnmanagedFunctionPointer(callingConvention)]
         [MonoNativeFunctionWrapper]
+        internal delegate void BindImageTextureDelegate(int imageUnit, int texture, int level, bool layered, int layer, BufferAccess access, PixelInternalFormat format);
+        internal static BindImageTextureDelegate BindImageTexture;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
         internal delegate void DrawElementsDelegate(GLPrimitiveType primitiveType, int count, DrawElementsType elementType, IntPtr offset);
         internal static DrawElementsDelegate DrawElements;
 
@@ -882,6 +909,30 @@ namespace MonoGame.OpenGL
         [MonoNativeFunctionWrapper]
         internal delegate void DrawArraysDelegate(GLPrimitiveType primitiveType, int offset, int count);
         internal static DrawArraysDelegate DrawArrays;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void DrawElementsIndirectDelegate(GLPrimitiveType primitiveType, DrawElementsType elementType, IntPtr byteOffset);
+        internal static DrawElementsIndirectDelegate DrawElementsIndirect;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void DrawArraysIndirectDelegate(GLPrimitiveType primitiveType, IntPtr byteOffset);
+        internal static DrawArraysIndirectDelegate DrawArraysIndirect;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void DispatchComputeDelegate(int numGroupsX, int numGroupsY, int numGroupsZ);
+        internal static DispatchComputeDelegate DispatchCompute;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void DispatchComputeIndirectDelegate(IntPtr byteOffset);
+        internal static DispatchComputeIndirectDelegate DispatchComputeIndirect;
 
         [System.Security.SuppressUnmanagedCodeSecurity()]
         [UnmanagedFunctionPointer(callingConvention)]
@@ -1111,7 +1162,25 @@ namespace MonoGame.OpenGL
         [MonoNativeFunctionWrapper]
         internal delegate int GetUniformBlockIndexDelegate(int programId, string name);
         internal static GetUniformBlockIndexDelegate GetUniformBlockIndex;
-        
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate int UniformBlockBindingDelegate(int programId, int blockIndex, int blockBinding);
+        internal static UniformBlockBindingDelegate UniformBlockBinding;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate int GetProgramResourceIndexDelegate(int programId, ProgramInterface programInterface, string name);
+        internal static GetProgramResourceIndexDelegate GetProgramResourceIndex;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void ShaderStorageBlockBindingDelegate(int programId, int storageBlockIndex, int storageBlockBinding);
+        internal static ShaderStorageBlockBindingDelegate ShaderStorageBlockBinding;
+
         [System.Security.SuppressUnmanagedCodeSecurity()]
         [UnmanagedFunctionPointer(callingConvention)]
         [MonoNativeFunctionWrapper]
@@ -1380,6 +1449,12 @@ namespace MonoGame.OpenGL
         [MonoNativeFunctionWrapper]
         internal delegate void PatchParameteriDelegate(PatchParameterName name, int value);
         internal static PatchParameteriDelegate PatchParameteri;
+
+        [System.Security.SuppressUnmanagedCodeSecurity()]
+        [UnmanagedFunctionPointer(callingConvention)]
+        [MonoNativeFunctionWrapper]
+        internal delegate void MemoryBarrierDelegate(MemoryBarrierBits barriers);
+        internal static MemoryBarrierDelegate MemoryBarrier;
 
 #if DEBUG
         [UnmanagedFunctionPointer (CallingConvention.StdCall)]
@@ -1651,14 +1726,41 @@ namespace MonoGame.OpenGL
             {
                 GL.GetUniformBlockIndex = LoadFunction<GL.GetUniformBlockIndexDelegate>("glGetUniformBlockIndex");
             }
-            if (GL.GenSamplers == null && Extensions.Contains("GL_ARB_sampler_objects"))
+            if (GL.UniformBlockBinding == null && Extensions.Contains("GL_ARB_uniform_buffer_object"))
             {
-                GenSamplers = LoadFunction<GL.GenSamplersDelegate>("glGenSamplers");
-                DeleteSamplers = LoadFunction<GL.DeleteSamplersDelegate>("glDeleteSamplers");
-                BindSampler = LoadFunction<GL.BindSamplerDelegate>("glBindSampler");
-                SamplerParameteri = LoadFunction<GL.SamplerParameteriDelegate>("glSamplerParameteri");
-                SamplerParameterf = LoadFunction<GL.SamplerParameterfDelegate>("glSamplerParameterf");
-                SamplerParameterfv = LoadFunction<GL.SamplerParameterfvDelegate>("glSamplerParameterfv");
+                GL.UniformBlockBinding = LoadFunction<GL.UniformBlockBindingDelegate>("glUniformBlockBinding");
+            }
+            if (GL.GetProgramResourceIndex == null && Extensions.Contains("GL_ARB_shader_storage_buffer_object"))
+            {
+                GL.GetProgramResourceIndex = LoadFunction<GL.GetProgramResourceIndexDelegate>("glGetProgramResourceIndex");
+            }
+            if (GL.ShaderStorageBlockBinding == null && Extensions.Contains("GL_ARB_shader_storage_buffer_object"))
+            {
+                GL.ShaderStorageBlockBinding = LoadFunction<GL.ShaderStorageBlockBindingDelegate>("glShaderStorageBlockBinding");
+            }
+            if (GL.DispatchCompute == null && Extensions.Contains("GL_ARB_compute_shader"))
+            {
+                GL.DispatchCompute = LoadFunction<GL.DispatchComputeDelegate>("glDispatchCompute");
+            }
+            if (GL.BindImageTexture == null && Extensions.Contains("GL_ARB_shader_image_load_store"))
+            {
+                GL.BindImageTexture = LoadFunction<GL.BindImageTextureDelegate>("glBindImageTexture");
+            }
+            if (GL.DrawElementsIndirect == null && Extensions.Contains("GL_ARB_draw_indirect"))
+            {
+                GL.DrawElementsIndirect = LoadFunction<GL.DrawElementsIndirectDelegate>("glDrawElementsIndirect");
+            }
+            if (GL.DrawArraysIndirect == null && Extensions.Contains("GL_ARB_draw_indirect"))
+            {
+                GL.DrawArraysIndirect = LoadFunction<GL.DrawArraysIndirectDelegate>("glDrawArraysIndirect");
+            }
+            if (GL.DispatchComputeIndirect == null && Extensions.Contains("GL_ARB_compute_shader"))
+            {
+                GL.DispatchComputeIndirect = LoadFunction<GL.DispatchComputeIndirectDelegate>("glDispatchComputeIndirect");
+            }
+            if (GL.MemoryBarrier == null && Extensions.Contains("GL_ARB_shader_image_load_store"))
+            {
+                GL.MemoryBarrier = LoadFunction<GL.MemoryBarrierDelegate>("glMemoryBarrier");
             }
         }
 

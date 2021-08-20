@@ -22,6 +22,7 @@ namespace MonoGame.Effect
         private static readonly Regex GlslHullShaderRegex = DirectX11ShaderProfile.HlslHullShaderRegex;
         private static readonly Regex GlslDomainShaderRegex = DirectX11ShaderProfile.HlslDomainShaderRegex;
         private static readonly Regex GlslGeometryShaderRegex = DirectX11ShaderProfile.HlslGeometryShaderRegex;
+        private static readonly Regex GlslComputeShaderRegex = DirectX11ShaderProfile.HlslComputeShaderRegex;
 
         public OpenGLShaderProfile()
             : base("OpenGL", 0)
@@ -57,6 +58,8 @@ namespace MonoGame.Effect
                     return GlslDomainShaderRegex;
                 case ShaderStage.GeometryShader:
                     return GlslGeometryShaderRegex;
+                case ShaderStage.ComputeShader:
+                    return GlslComputeShaderRegex;
                 default:
                     throw new Exception("GetShaderModelRegex: Unknown shader stage");
             }
@@ -65,11 +68,12 @@ namespace MonoGame.Effect
         internal override void ValidateShaderModels(PassInfo pass)
         {
             int maxSM = _useMojo ? 3 : 5;
+
+            int major, minor;
+            string extension;
+
             if (_useMojo)
             {
-                int major, minor;
-                string extension;
-
                 if (!string.IsNullOrEmpty(pass.vsFunction))
                 {
                     ParseShaderModel(pass.vsModel, GlslVertexShaderRegex, out major, out minor, out extension);
@@ -84,6 +88,36 @@ namespace MonoGame.Effect
                         throw new Exception(String.Format("Invalid profile '{0}'. Pixel shader '{1}' must be SM {2}.0 or lower!", pass.vsModel, pass.psFunction, maxSM));
                 }
             }
+            else
+            {
+                if (!string.IsNullOrEmpty(pass.hsFunction))
+                {
+                    ParseShaderModel(pass.hsModel, GlslHullShaderRegex, out major, out minor, out extension);
+                    if (major <= 4)
+                        throw new Exception(String.Format("Invalid profile '{0}'. Hull shader '{1}' must be SM 5.0!", pass.hsModel, pass.hsFunction));
+                }
+
+                if (!string.IsNullOrEmpty(pass.dsFunction))
+                {
+                    ParseShaderModel(pass.dsModel, GlslDomainShaderRegex, out major, out minor, out extension);
+                    if (major <= 4)
+                        throw new Exception(String.Format("Invalid profile '{0}'. Domain shader '{1}' must be SM 5.0!", pass.vsModel, pass.dsFunction));
+                }
+
+                if (!string.IsNullOrEmpty(pass.gsFunction))
+                {
+                    ParseShaderModel(pass.gsModel, GlslGeometryShaderRegex, out major, out minor, out extension);
+                    if (major <= 3)
+                        throw new Exception(String.Format("Invalid profile '{0}'. Geometry shader '{1}' must be SM 4.0 or higher!", pass.gsModel, pass.gsFunction));
+                }
+
+                if (!string.IsNullOrEmpty(pass.csFunction))
+                {
+                    ParseShaderModel(pass.csModel, GlslComputeShaderRegex, out major, out minor, out extension);
+                    if (major <= 4)
+                        throw new Exception(String.Format("Invalid profile '{0}'. Compute shader '{1}' must be SM 5.0 or higher!", pass.csModel, pass.csFunction));
+                }
+            }
         }
 
         internal override ShaderData CreateShader(ShaderResult shaderResult, string shaderFunction, string shaderProfile, ShaderStage shaderStage, EffectObject effect, ref string errorsAndWarnings)
@@ -93,13 +127,6 @@ namespace MonoGame.Effect
                 // For now GLSL is only supported via translation
                 // using MojoShader which works from HLSL bytecode.
                 var bytecode = EffectObject.CompileHLSL(shaderResult, shaderFunction, shaderProfile, ref errorsAndWarnings);
-
-                // First look to see if we already created this same shader.
-                foreach (var shader in effect.Shaders)
-                {
-                    if (bytecode.SequenceEqual(shader.Bytecode))
-                        return shader;
-                }
 
                 var shaderInfo = shaderResult.ShaderInfo;
                 var shaderData = ShaderData.CreateGLSL_Mojo(bytecode, shaderStage, effect.ConstantBuffers, effect.Shaders.Count, shaderInfo.SamplerStates, shaderResult.Debug);
@@ -114,7 +141,8 @@ namespace MonoGame.Effect
                 var shaderInfo = shaderResult.ShaderInfo;
                 var sourceCode = shaderResult.FileContent;
 
-                var shaderData = ShaderData.CreateGLSL_Conductor(sourceCode, effect.Shaders.Count,
+                var shaderData = ShaderData.CreateGLSL_Conductor(
+                    sourceCode, effect.Shaders.Count,
                     shaderStage, shaderFunction,
                     smMajor, smMinor, smExtension,
                     effect.ConstantBuffers, shaderInfo.SamplerStates,
@@ -186,22 +214,6 @@ namespace MonoGame.Effect
                     }
                 }
             }
-        }
-    }
-
-    class OpenGLESShaderProfile : OpenGLShaderProfile
-    {
-        protected override bool IsESSL => true;
-
-        public OpenGLESShaderProfile()
-            : base("OpenGLES")
-        {
-        }
-
-        internal override void AddMacros(Dictionary<string, string> macros, Options options)
-        {
-            base.AddMacros(macros, options);
-            macros.Add("ESSL", "1");
         }
     }
 }

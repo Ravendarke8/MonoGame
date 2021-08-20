@@ -87,26 +87,20 @@ namespace Microsoft.Xna.Framework.Graphics
         internal GraphicsCapabilities GraphicsCapabilities { get; private set; }
 
         public TextureCollection Textures { get; private set; }
-
         public TextureCollection VertexTextures { get; private set; }
-
         public TextureCollection HullTextures { get; private set; }
-
         public TextureCollection DomainTextures { get; private set; }
 
         public TextureCollection GeometryTextures { get; private set; }
+        public TextureCollection ComputeTextures { get; private set; }
 
         public SamplerStateCollection SamplerStates { get; private set; }
-
         public SamplerStateCollection VertexSamplerStates { get; private set; }
-
         public SamplerStateCollection HullSamplerStates { get; private set; }
-
         public SamplerStateCollection DomainSamplerStates { get; private set; }
-
         public SamplerStateCollection GeometrySamplerStates { get; private set; }
+        public SamplerStateCollection ComputeSamplerStates { get; private set; }
 
-      
 
         /// <summary>
         /// Get or set the color a <see cref="RenderTarget2D"/> is cleared to when it is set.
@@ -166,11 +160,29 @@ namespace Microsoft.Xna.Framework.Graphics
             get { return _geometryShaderDirty; }
         }
 
+        /// <summary>
+        /// The active compute shader.
+        /// </summary>
+        private Shader _computeShader;
+        private bool _computeShaderDirty;
+        private bool ComputeShaderDirty
+        {
+            get { return _computeShaderDirty; }
+        }
+
         private readonly ConstantBufferCollection _vertexConstantBuffers = new ConstantBufferCollection(ShaderStage.Vertex, 16);
         private readonly ConstantBufferCollection _pixelConstantBuffers = new ConstantBufferCollection(ShaderStage.Pixel, 16);
         private readonly ConstantBufferCollection _hullConstantBuffers = new ConstantBufferCollection(ShaderStage.Hull, 16);
         private readonly ConstantBufferCollection _domainConstantBuffers = new ConstantBufferCollection(ShaderStage.Domain, 16);
         private readonly ConstantBufferCollection _geometryConstantBuffers = new ConstantBufferCollection(ShaderStage.Geometry, 16);
+        private readonly ConstantBufferCollection _computeConstantBuffers = new ConstantBufferCollection(ShaderStage.Compute, 16);
+
+        private readonly ShaderResourceCollection _vertexShaderResources = new ShaderResourceCollection(ShaderStage.Vertex, 16, 8);
+        private readonly ShaderResourceCollection _pixelShaderResources = new ShaderResourceCollection(ShaderStage.Pixel, 16, 8);
+        private readonly ShaderResourceCollection _hullShaderResources = new ShaderResourceCollection(ShaderStage.Hull, 16, 8);
+        private readonly ShaderResourceCollection _domainShaderResources = new ShaderResourceCollection(ShaderStage.Domain, 16, 8);
+        private readonly ShaderResourceCollection _geometryShaderResources = new ShaderResourceCollection(ShaderStage.Geometry, 16, 8);
+        private readonly ShaderResourceCollection _computeShaderResources = new ShaderResourceCollection(ShaderStage.Compute, 16, 8);
 
         /// <summary>
         /// The cache of effects from unique byte streams.
@@ -353,24 +365,28 @@ namespace Microsoft.Xna.Framework.Graphics
             HullTextures = Textures;
             DomainTextures = Textures;
             GeometryTextures = Textures;
+            ComputeTextures = Textures;
             Textures = Textures;
 
             VertexSamplerStates = SamplerStates;
             HullSamplerStates = SamplerStates;
             DomainSamplerStates = SamplerStates;
             GeometrySamplerStates = SamplerStates;
+            ComputeSamplerStates = SamplerStates;
             SamplerStates = SamplerStates;
 #else
             VertexTextures = new TextureCollection(this, MaxVertexTextureSlots);
             HullTextures = new TextureCollection(this, MaxVertexTextureSlots);
             DomainTextures = new TextureCollection(this, MaxVertexTextureSlots);
             GeometryTextures = new TextureCollection(this, MaxVertexTextureSlots);
+            ComputeTextures = new TextureCollection(this, MaxVertexTextureSlots);
             Textures = new TextureCollection(this, MaxTextureSlots);
 
             VertexSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
             HullSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
             DomainSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
             GeometrySamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
+            ComputeSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
             SamplerStates = new SamplerStateCollection(this, MaxTextureSlots);
 #endif
 
@@ -441,12 +457,14 @@ namespace Microsoft.Xna.Framework.Graphics
             HullTextures.Clear();
             DomainTextures.Clear();
             GeometryTextures.Clear();
+            ComputeTextures.Clear();
 
             SamplerStates.Clear();
             VertexSamplerStates.Clear();
             HullSamplerStates.Clear();
             DomainSamplerStates.Clear();
             GeometrySamplerStates.Clear();
+            ComputeSamplerStates.Clear();
 
             // Clear constant buffers
             _vertexConstantBuffers.Clear();
@@ -454,6 +472,15 @@ namespace Microsoft.Xna.Framework.Graphics
             _hullConstantBuffers.Clear();
             _domainConstantBuffers.Clear();
             _geometryConstantBuffers.Clear();
+            _computeConstantBuffers.Clear();
+
+            // Clear buffer resources
+            _vertexShaderResources.Clear();
+            _pixelShaderResources.Clear();
+            _hullShaderResources.Clear();
+            _domainShaderResources.Clear();
+            _geometryShaderResources.Clear();
+            _computeShaderResources.Clear();
 
             // Force set the buffers and shaders on next ApplyState() call
             _vertexBuffers = new VertexBufferBindings(_maxVertexBufferSlots);
@@ -464,6 +491,7 @@ namespace Microsoft.Xna.Framework.Graphics
             _hullShaderDirty = true;
             _domainShaderDirty = true;
             _geometryShaderDirty = true;
+            _computeShaderDirty = true;
 
             // Set the default scissor rect.
             _scissorRectangleDirty = true;
@@ -1066,6 +1094,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 _vertexShader = value;
                 _vertexConstantBuffers.Clear();
+                _vertexShaderResources.Clear();
                 _vertexShaderDirty = true;
             }
         }
@@ -1080,6 +1109,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 _pixelShader = value;
                 _pixelConstantBuffers.Clear();
+                _pixelShaderResources.Clear();
                 _pixelShaderDirty = true;
             }
         }
@@ -1094,6 +1124,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 _hullShader = value;
                 _hullConstantBuffers.Clear();
+                _hullShaderResources.Clear();
                 _hullShaderDirty = true;
             }
         }
@@ -1108,6 +1139,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 _domainShader = value;
                 _domainConstantBuffers.Clear();
+                _domainShaderResources.Clear();
                 _domainShaderDirty = true;
             }
         }
@@ -1122,7 +1154,23 @@ namespace Microsoft.Xna.Framework.Graphics
 
                 _geometryShader = value;
                 _geometryConstantBuffers.Clear();
+                _geometryShaderResources.Clear();
                 _geometryShaderDirty = true;
+            }
+        }
+
+        internal Shader ComputeShader
+        {
+            get { return _computeShader; }
+            set
+            {
+                if (_computeShader == value)
+                    return;
+
+                _computeShader = value;
+                _computeConstantBuffers.Clear();
+                _computeShaderResources.Clear();
+                _computeShaderDirty = true;
             }
         }
 
@@ -1144,6 +1192,36 @@ namespace Microsoft.Xna.Framework.Graphics
                     break;
                 case ShaderStage.Geometry:
                     _geometryConstantBuffers[slot] = buffer;
+                    break;
+                case ShaderStage.Compute:
+                    _computeConstantBuffers[slot] = buffer;
+                    break;
+                default:
+                    throw new ArgumentException();
+            }
+        }
+
+        internal void SetShaderResource(ShaderStage stage, int slot, ShaderResource resource, string blockName, bool writeAcess)
+        {
+            switch (stage)
+            {
+                case ShaderStage.Vertex:
+                    _vertexShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    break;
+                case ShaderStage.Pixel:
+                    _pixelShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    break;
+                case ShaderStage.Hull:
+                    _hullShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    break;
+                case ShaderStage.Domain:
+                    _domainShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    break;
+                case ShaderStage.Geometry:
+                    _geometryShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    break;
+                case ShaderStage.Compute:
+                    _computeShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
                     break;
                 default:
                     throw new ArgumentException();
@@ -1552,6 +1630,106 @@ namespace Microsoft.Xna.Framework.Graphics
                 _graphicsMetrics._drawCount++;
                 _graphicsMetrics._primitiveCount += (primitiveCount * instanceCount);
             }
+        }
+
+        /// <summary>
+        /// Draw instanced geometry from the bound vertex buffers.
+        /// The draw parameters are provided by a buffer, rather than passed directly as function parameters.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives to draw.</param>
+        /// <param name="indirectDrawBuffer">The buffer containing the draw arguments (VertexCountPerInstance, InstanceCount, ...) 
+        /// <param name="alignedByteOffsetForArgs">The offset for the indirect draw buffer in bytes from where to start reading the parameters.</param>
+        public void DrawInstancedPrimitivesIndirect(PrimitiveType primitiveType, IndirectDrawBuffer indirectDrawBuffer, int alignedByteOffsetForArgs = 0)
+        {
+            if (_vertexShader == null)
+                throw new InvalidOperationException("Vertex shader must be set before calling DrawInstancedPrimitivesIndirect.");
+
+            if (_vertexBuffers.Count == 0)
+                throw new InvalidOperationException("Vertex buffer must be set before calling DrawInstancedPrimitives.");
+
+            bool isPatchPrimitives = primitiveType >= PrimitiveType.PatchListWith1ControlPoints && primitiveType <= PrimitiveType.PatchListWith32ControlPoints;
+
+            if (_hullShader == null && isPatchPrimitives)
+                throw new ArgumentException("Patch primitives can only be drawn when a hull shader is active");
+
+            if (_hullShader != null && !isPatchPrimitives)
+                throw new ArgumentException("If a hull shader is active the primitive type must be one of the patch types");
+
+            PlatformDrawInstancedPrimitivesIndirect(primitiveType, indirectDrawBuffer, alignedByteOffsetForArgs);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+            }
+        }
+
+        /// <summary>
+        /// Draw instanced geometry from the bound vertex and index buffer.
+        /// The draw parameters are provided by a buffer, rather than passed directly as function parameters.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives in the index buffer.</param>
+        /// <param name="indirectDrawBuffer">The buffer containing the draw arguments (IndexCountPerInstance, InstanceCount, ...) 
+        /// <param name="alignedByteOffsetForArgs">The offset for the indirect draw buffer in bytes from where to start reading the parameters.</param>
+        public void DrawIndexedInstancedPrimitivesIndirect(PrimitiveType primitiveType, IndirectDrawBuffer indirectDrawBuffer, int alignedByteOffsetForArgs = 0)
+        {
+            if (_vertexShader == null)
+                throw new InvalidOperationException("Vertex shader must be set before calling DrawInstancedPrimitives.");
+
+            if (_vertexBuffers.Count == 0)
+                throw new InvalidOperationException("Vertex buffer must be set before calling DrawInstancedPrimitives.");
+
+            if (_indexBuffer == null)
+                throw new InvalidOperationException("Index buffer must be set before calling DrawInstancedPrimitives.");
+
+            bool isPatchPrimitives = primitiveType >= PrimitiveType.PatchListWith1ControlPoints && primitiveType <= PrimitiveType.PatchListWith32ControlPoints;
+
+            if (_hullShader == null && isPatchPrimitives)
+                 throw new ArgumentException("Patch primitives can only be drawn when a hull shader is active");
+
+            if (_hullShader != null && !isPatchPrimitives)
+                 throw new ArgumentException("If a hull shader is active the primitive type must be one of the patch types");
+
+            PlatformDrawIndexedInstancedPrimitivesIndirect(primitiveType, indirectDrawBuffer, alignedByteOffsetForArgs);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+            }
+        }
+
+        /// <summary>
+        /// Execute the currently bound compute shader.
+        /// </summary>
+        /// <param name="threadGroupCountX">The number of thread groups dispatched in the x direction.</param>
+        /// <param name="threadGroupCountY">The number of thread groups dispatched in the y direction.</param>
+        /// <param name="threadGroupCountZ">The number of thread groups dispatched in the z direction.</param>
+        public void DispatchCompute(int threadGroupCountX, int threadGroupCountY, int threadGroupCountZ)
+        {
+            if (_computeShader == null)
+                return;
+
+            if (threadGroupCountX <= 0)
+                throw new ArgumentOutOfRangeException("threadGroupCountX");
+            if (threadGroupCountY <= 0)
+                throw new ArgumentOutOfRangeException("threadGroupCountY");
+            if (threadGroupCountZ <= 0)
+                throw new ArgumentOutOfRangeException("threadGroupCountZ");
+
+            PlatformDispatchCompute(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+        }
+
+        /// <summary>
+        /// Execute the currently bound compute shader.
+        /// The group count parameters are provided by a buffer, rather than passed directly as function parameters.
+        /// </summary>
+        /// <param name="indirectDrawBuffer">The buffer containing the group count x, y, z parameters.
+        /// <param name="alignedByteOffsetForArgs">The offset for the indirect draw buffer in bytes from where to start reading the parameters.</param>
+        public void DispatchComputeIndirect(IndirectDrawBuffer indirectDrawBuffer, int alignedByteOffsetForArgs = 0)
+        {
+            if (_computeShader == null)
+                return;
+
+            PlatformDispatchComputeIndirect(indirectDrawBuffer, alignedByteOffsetForArgs);
         }
 
         /// <summary>

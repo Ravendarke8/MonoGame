@@ -10,7 +10,8 @@ namespace MonoGame.Effect
 {
 	internal partial class ShaderData
 	{
-        public static ShaderData CreateGLSL_Conductor(string sourceCode, int sharedIndex, 
+        public static ShaderData CreateGLSL_Conductor(
+            string sourceCode, int sharedIndex, 
             ShaderStage shaderStage, string shaderFunction,
             int shaderModelMajor, int shaderModelMinor, string shaderModelExtension,
             List<ConstantBufferData> cbuffers, Dictionary<string, SamplerStateInfo> samplerStates,
@@ -35,6 +36,7 @@ namespace MonoGame.Effect
             var options = ShaderConductor.OptionsDesc.Default;
             options.enableDebugInfo = false;
             options.shaderModel = new ShaderConductor.ShaderModel(shaderModelMajorDX, shaderModelMinorDX);
+            options.shiftAllUABuffersBindings = 16; // avoid conflict between u-registers (writeable buffers and textures) and t-registers (readonly buffers and textures)
 
             //==============================================================
             // Choose best GLSL/ESSL target version based on DX shader model
@@ -205,7 +207,34 @@ namespace MonoGame.Effect
                 if (samplerStates.TryGetValue(samplers[i].originalName, out SamplerStateInfo state))
                     shaderData._samplers[i].state = state.State;
             }
-            
+
+            //==============================================================
+            // Add storage buffers and storage images to shaderData
+            //==============================================================
+            var storageBuffers = ShaderConductor.GetStorageBuffers(result);
+            var storageImages = ShaderConductor.GetStorageImages(result);
+
+            shaderData._shaderResources = new ShaderResourceData[storageBuffers.Count + storageImages.Count];
+
+            for (int i = 0; i < storageBuffers.Count; i++)
+            {
+                shaderData._shaderResources[i].Name = storageBuffers[i].instanceName;
+                shaderData._shaderResources[i].BlockName = storageBuffers[i].blockName; 
+                shaderData._shaderResources[i].ElementSize = storageBuffers[i].byteSize;
+                shaderData._shaderResources[i].Slot = storageBuffers[i].slot;
+                shaderData._shaderResources[i].Type = storageBuffers[i].readOnly ? ShaderResourceType.StructuredBuffer : ShaderResourceType.RWStructuredBuffer;
+            }
+
+            for (int i = 0; i < storageImages.Count; i++)
+            {
+                int r = storageBuffers.Count + i;
+                shaderData._shaderResources[r].Name = storageImages[i].name; 
+                shaderData._shaderResources[r].BlockName = "";
+                shaderData._shaderResources[r].ElementSize = 0;
+                shaderData._shaderResources[r].Slot = storageImages[i].slot;
+                shaderData._shaderResources[r].Type = ShaderResourceType.RWTexture;
+            }
+
             //==============================================================
             // Cleanup
             //==============================================================
@@ -227,6 +256,7 @@ namespace MonoGame.Effect
                 case Effect.ShaderStage.HullShader: return ShaderConductor.ShaderStage.HullShader;
                 case Effect.ShaderStage.DomainShader: return ShaderConductor.ShaderStage.DomainShader;
                 case Effect.ShaderStage.GeometryShader: return ShaderConductor.ShaderStage.GeometryShader;
+                case Effect.ShaderStage.ComputeShader: return ShaderConductor.ShaderStage.ComputeShader;
                 default:
                     throw new Exception("Shader stage conversion failed.");
             }

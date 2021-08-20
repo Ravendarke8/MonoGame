@@ -41,6 +41,8 @@ namespace MonoGame.Effect
 		/// </summary>
 		public int[] _cbuffers;
 
+        public ShaderResourceData[] _shaderResources;
+
 		public Sampler[] _samplers;
 
 		public Attribute[] _attributes;
@@ -54,6 +56,10 @@ namespace MonoGame.Effect
 
 		// The index of the shader in the shared list.
 		public int SharedIndex { get; private set; }
+
+        public string ShaderFunctionName { get; set; }
+
+        public string ShaderProfile { get; set; }
 
 #endregion // Non-Serialized Stuff
 

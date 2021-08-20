@@ -7,11 +7,13 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-    public partial class VertexBuffer
+    public partial class BufferResource
     {
-        public SharpDX.Direct3D11.Buffer _buffer;
-
+        private SharpDX.Direct3D11.Buffer _buffer;
         private SharpDX.Direct3D11.Buffer _cachedStagingBuffer;
+       
+        private SharpDX.Direct3D11.ShaderResourceView _shaderResourceView;
+        private SharpDX.Direct3D11.UnorderedAccessView _unorderedAccessView;
 
         internal SharpDX.Direct3D11.Buffer Buffer
         {
@@ -22,7 +24,77 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-        public void PlatformConstruct()
+        internal virtual SharpDX.Direct3D11.ShaderResourceView GetShaderResourceView()
+        {
+            if (_shaderResourceView == null)
+            {
+                if (BufferType != BufferType.IndirectDrawBuffer)
+                    _shaderResourceView = new SharpDX.Direct3D11.ShaderResourceView(GraphicsDevice._d3dDevice, Buffer);
+                else
+                {
+                    _shaderResourceView = new SharpDX.Direct3D11.ShaderResourceView(GraphicsDevice._d3dDevice, Buffer, new SharpDX.Direct3D11.ShaderResourceViewDescription
+                    {
+                        Dimension = SharpDX.Direct3D.ShaderResourceViewDimension.ExtendedBuffer,
+                        Format = SharpDX.DXGI.Format.R32_Typeless,
+                        BufferEx = new SharpDX.Direct3D11.ShaderResourceViewDescription.ExtendedBufferResource
+                        {
+                            FirstElement = 0,
+                            ElementCount = this.ElementCount,
+                            Flags = SharpDX.Direct3D11.ShaderResourceViewExtendedBufferFlags.Raw,
+                        }
+                    });
+                }
+            }
+
+            return _shaderResourceView;
+        }
+
+        internal SharpDX.Direct3D11.UnorderedAccessView GetUnorderedAccessView()
+        {
+            if (_unorderedAccessView == null) {
+                if (ShaderAccess != ShaderAccess.ReadWrite)
+                    throw new InvalidOperationException("The buffer requires GPU write access, but was created without it");
+
+                int elementCount = 0;
+                SharpDX.DXGI.Format format;
+                var flags = SharpDX.Direct3D11.UnorderedAccessViewBufferFlags.None;
+
+                switch (BufferType)
+                {
+                    case BufferType.StructuredBuffer:
+                        elementCount = this.ElementCount;
+                        format = SharpDX.DXGI.Format.Unknown;
+                        break;
+                    case BufferType.VertexBuffer:
+                    case BufferType.IndexBuffer:
+                    case BufferType.IndirectDrawBuffer:
+                        elementCount = this.ElementCount * this.ElementStride / 4; // for ByteAddressBuffers one element is 4 bytes
+                        format = SharpDX.DXGI.Format.R32_Typeless;
+                        flags |= SharpDX.Direct3D11.UnorderedAccessViewBufferFlags.Raw;
+                        break;
+                    default:
+                        throw new Exception("invalid buffer type");
+                }
+
+                var desc = new SharpDX.Direct3D11.UnorderedAccessViewDescription
+                {
+                    Dimension = SharpDX.Direct3D11.UnorderedAccessViewDimension.Buffer,
+                    Format = format,
+                    Buffer = new SharpDX.Direct3D11.UnorderedAccessViewDescription.BufferResource
+                    {
+                        FirstElement = 0,
+                        ElementCount = elementCount,
+                        Flags = flags,
+                    },
+                };
+
+                _unorderedAccessView = new SharpDX.Direct3D11.UnorderedAccessView(GraphicsDevice._d3dDevice, Buffer, desc);
+            }
+
+            return _unorderedAccessView;
+        }
+
+        private void PlatformConstruct()
         {
             GenerateIfRequired();
         }
@@ -42,44 +114,36 @@ namespace Microsoft.Xna.Framework.Graphics
 
             var accessflags = SharpDX.Direct3D11.CpuAccessFlags.None;
             var usage = SharpDX.Direct3D11.ResourceUsage.Default;
+            var bindFlags = SharpDX.Direct3D11.BindFlags.None;
+            var resourceOptions = SharpDX.Direct3D11.ResourceOptionFlags.None;
 
+            if (BufferType == BufferType.VertexBuffer)
+                bindFlags |= SharpDX.Direct3D11.BindFlags.VertexBuffer;
+            if (BufferType == BufferType.IndexBuffer)
+                bindFlags |= SharpDX.Direct3D11.BindFlags.IndexBuffer;
+            if (BufferType == BufferType.StructuredBuffer)
+                resourceOptions |= SharpDX.Direct3D11.ResourceOptionFlags.BufferStructured;
+            if (BufferType == BufferType.IndirectDrawBuffer)
+                resourceOptions |= SharpDX.Direct3D11.ResourceOptionFlags.DrawIndirectArguments;
+            if ((BufferType == BufferType.VertexBuffer || BufferType == BufferType.IndexBuffer || BufferType == BufferType.IndirectDrawBuffer) && ShaderAccess != ShaderAccess.None)
+                resourceOptions |= SharpDX.Direct3D11.ResourceOptionFlags.BufferAllowRawViews;
+            if (ShaderAccess != ShaderAccess.None)
+                bindFlags |= SharpDX.Direct3D11.BindFlags.ShaderResource;
+            if (ShaderAccess == ShaderAccess.ReadWrite)
+                bindFlags |= SharpDX.Direct3D11.BindFlags.UnorderedAccess;
             if (_isDynamic)
             {
                 accessflags |= SharpDX.Direct3D11.CpuAccessFlags.Write;
                 usage = SharpDX.Direct3D11.ResourceUsage.Dynamic;
             }
 
-            int structureSizeInBytes = 0;
-            var bindFlags = SharpDX.Direct3D11.BindFlags.VertexBuffer;
-            var resourceOptionFlags = SharpDX.Direct3D11.ResourceOptionFlags.None;
-
-            if ((BufferUsageCompute & BufferUsageCompute.Compute) != 0)
-            {
-                bindFlags = SharpDX.Direct3D11.BindFlags.UnorderedAccess;
-                // bindFlags |= SharpDX.Direct3D11.BindFlags.UnorderedAccess;
-                if ((BufferUsageCompute & BufferUsageCompute.ShaderResource) != 0)
-                    bindFlags |= SharpDX.Direct3D11.BindFlags.ShaderResource;
-                if ((BufferUsageCompute & BufferUsageCompute.RawBuffer) != 0)
-                    resourceOptionFlags |= SharpDX.Direct3D11.ResourceOptionFlags.BufferAllowRawViews;
-                if ((BufferUsageCompute & BufferUsageCompute.IndirectArgsBuffer) != 0)
-                    resourceOptionFlags |= SharpDX.Direct3D11.ResourceOptionFlags.DrawIndirectArguments;
-                if ((BufferUsageCompute & BufferUsageCompute.StructuredBuffer) != 0)
-                {
-                    resourceOptionFlags |= SharpDX.Direct3D11.ResourceOptionFlags.BufferStructured;
-                    structureSizeInBytes = VertexDeclaration.VertexStride;
-                }
-                if ((BufferUsageCompute & BufferUsageCompute.CpuAccess) != 0)
-                    accessflags |= SharpDX.Direct3D11.CpuAccessFlags.Read;
-            }
-
             _buffer = new SharpDX.Direct3D11.Buffer(GraphicsDevice._d3dDevice,
-                                                        VertexDeclaration.VertexStride * VertexCount,
-                                                        usage,
-                                                        bindFlags,
-                                                        accessflags,
-                                                        resourceOptionFlags,
-                                                        structureSizeInBytes
-                                                        );
+                                                    ElementStride * ElementCount,
+                                                    usage,
+                                                    bindFlags,
+                                                    accessflags,
+                                                    resourceOptions,
+                                                    ElementStride);
         }
 
         void CreatedCachedStagingBuffer()
@@ -96,7 +160,7 @@ namespace Microsoft.Xna.Framework.Graphics
             _cachedStagingBuffer = new SharpDX.Direct3D11.Buffer(GraphicsDevice._d3dDevice, stagingDesc);
         }
 
-        private void PlatformGetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int vertexStride) where T : struct
+        internal void PlatformGetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int elementStride) where T : struct
         {
             GenerateIfRequired();
 
@@ -127,14 +191,14 @@ namespace Microsoft.Xna.Framework.Graphics
                         // Map the staging resource to a CPU accessible memory
                         var box = deviceContext.MapSubresource(_cachedStagingBuffer, 0, SharpDX.Direct3D11.MapMode.Read, SharpDX.Direct3D11.MapFlags.None);
 
-                        if (vertexStride == TsizeInBytes)
+                        if (elementStride == TsizeInBytes)
                         {
-                            SharpDX.Utilities.CopyMemory(dataPtr, box.DataPointer + offsetInBytes, vertexStride * elementCount);
+                            SharpDX.Utilities.CopyMemory(dataPtr, box.DataPointer + offsetInBytes, elementStride * elementCount);
                         }
                         else
                         {
                             for (int i = 0; i < elementCount; i++)
-                                SharpDX.Utilities.CopyMemory(dataPtr + i * TsizeInBytes, box.DataPointer + i * vertexStride + offsetInBytes, TsizeInBytes);
+                                SharpDX.Utilities.CopyMemory(dataPtr + i * TsizeInBytes, box.DataPointer + i * elementStride + offsetInBytes, TsizeInBytes);
                         }
 
                         // Make sure that we unmap the resource in case of an exception
@@ -148,7 +212,7 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-        private void PlatformSetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int vertexStride, SetDataOptions options, int bufferSize, int elementSizeInBytes) where T : struct
+        internal void PlatformSetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, int elementStride, SetDataOptions options, int bufferSize, int elementSizeInBytes) where T : struct
         {
             GenerateIfRequired();
 
@@ -163,14 +227,14 @@ namespace Microsoft.Xna.Framework.Graphics
                 lock (d3dContext)
                 {
                     var dataBox = d3dContext.MapSubresource(_buffer, 0, mode, SharpDX.Direct3D11.MapFlags.None);
-                    if (vertexStride == elementSizeInBytes)
+                    if (elementStride == elementSizeInBytes)
 					{
                         SharpDX.Utilities.Write(dataBox.DataPointer + offsetInBytes, data, startIndex, elementCount);
                     }
                     else
                     {
                         for (int i = 0; i < elementCount; i++)
-                            SharpDX.Utilities.Write(dataBox.DataPointer + offsetInBytes + i * vertexStride, data, startIndex + i, 1);
+                            SharpDX.Utilities.Write(dataBox.DataPointer + offsetInBytes + i * elementStride, data, startIndex + i, 1);
                     }
 
                     d3dContext.UnmapSubresource(_buffer, 0);
@@ -186,7 +250,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                     var d3dContext = GraphicsDevice._d3dContext;
 
-                    if (vertexStride == elementSizeInBytes)
+                    if (elementStride == elementSizeInBytes)
                     {
                         var box = new SharpDX.DataBox(dataPtr, elementCount * elementSizeInBytes, 0);
 
@@ -216,7 +280,7 @@ namespace Microsoft.Xna.Framework.Graphics
 
                             for (int i = 0; i < elementCount; i++)
                                 SharpDX.Utilities.CopyMemory(
-                                    box.DataPointer + i * vertexStride + offsetInBytes,
+                                    box.DataPointer + i * elementStride + offsetInBytes,
                                     dataPtr + i * elementSizeInBytes, elementSizeInBytes);
 
                             // Make sure that we unmap the resource in case of an exception
@@ -232,6 +296,16 @@ namespace Microsoft.Xna.Framework.Graphics
                     dataHandle.Free();
                 }
             }
+        }
+
+        internal override void PlatformApply(GraphicsDevice device, ShaderStage stage, int bindingSlot, bool writeAcess)
+        {
+            var shaderStageDX = device.GetDXShaderStage(stage);
+
+            if (writeAcess)
+                (shaderStageDX as SharpDX.Direct3D11.ComputeShaderStage).SetUnorderedAccessView(bindingSlot, GetUnorderedAccessView());
+            else
+                shaderStageDX.SetShaderResource(bindingSlot, GetShaderResourceView());
         }
 
         protected override void Dispose(bool disposing)

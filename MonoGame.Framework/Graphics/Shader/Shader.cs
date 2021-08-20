@@ -31,6 +31,20 @@ namespace Microsoft.Xna.Framework.Graphics
         public int parameter;
     }
 
+    internal struct ShaderResourceInfo
+    {
+        public string name;
+        public string blockName;
+        public int elementSize;
+        public int slot;
+        public ShaderResourceType type;
+
+        // TODO: This should be moved to EffectPass.
+        public int parameter;
+
+        public bool writeAccess { get { return ShaderResource.IsResourceTypeWriteable(type); } }
+    }
+
     internal struct VertexAttribute
     {
         public VertexElementUsage usage;
@@ -55,6 +69,8 @@ namespace Microsoft.Xna.Framework.Graphics
         public SamplerInfo[] Samplers { get; private set; }
 
 	    public int[] CBuffers { get; private set; }
+
+        public ShaderResourceInfo[] ShaderResources { get; private set; }
 
         public ShaderStage Stage { get; private set; }
 
@@ -112,6 +128,18 @@ namespace Microsoft.Xna.Framework.Graphics
                 Attributes[a].index = reader.ReadByte();
                 Attributes[a].location = reader.ReadInt16();
                 Attributes[a].size = reader.ReadByte();
+            }
+
+            var shaderResourceCount = (int)reader.ReadByte();
+            ShaderResources = new ShaderResourceInfo[shaderResourceCount];
+            for (var b = 0; b < shaderResourceCount; b++)
+            {
+                ShaderResources[b].name = reader.ReadString();
+                ShaderResources[b].blockName = reader.ReadString();
+                ShaderResources[b].elementSize = reader.ReadUInt16();
+                ShaderResources[b].slot = reader.ReadByte();
+                ShaderResources[b].type = (ShaderResourceType)reader.ReadByte();
+                ShaderResources[b].parameter = reader.ReadByte();
             }
 
             PlatformConstruct(Stage, shaderBytecode);

@@ -32,6 +32,7 @@ namespace Microsoft.Xna.Framework.Graphics
         internal SharpDX.Direct3D11.RenderTargetView _renderTargetView;
         internal SharpDX.Direct3D11.DepthStencilView _depthStencilView;
         private int _vertexBufferSlotsUsed;
+        private bool _shaderResourcesSetForCompute; // keep track of who is setting buffer resources: normal draw or compute
 
         public IntPtr GetNativeDxRenderTargetResource()
         {
@@ -1185,6 +1186,7 @@ namespace Microsoft.Xna.Framework.Graphics
                     HullTextures.ClearTargets(_currentRenderTargetBindings, _d3dContext.HullShader);
                     DomainTextures.ClearTargets(_currentRenderTargetBindings, _d3dContext.DomainShader);
                     GeometryTextures.ClearTargets(_currentRenderTargetBindings, _d3dContext.GeometryShader);
+                    ComputeTextures.ClearTargets(_currentRenderTargetBindings, _d3dContext.ComputeShader);
                 }
             }
 
@@ -1345,6 +1347,8 @@ namespace Microsoft.Xna.Framework.Graphics
                     return _d3dContext.DomainShader;
                 case ShaderStage.Geometry:
                     return _d3dContext.GeometryShader;
+                case ShaderStage.Compute:
+                    return _d3dContext.ComputeShader;
                 default:
                     throw new ArgumentException();
             }
@@ -1503,9 +1507,13 @@ namespace Microsoft.Xna.Framework.Graphics
 
             _vertexConstantBuffers.SetConstantBuffers(this);
             _pixelConstantBuffers.SetConstantBuffers(this);
-            _hullConstantBuffers.SetConstantBuffers(this);
-            _domainConstantBuffers.SetConstantBuffers(this);
-            _geometryConstantBuffers.SetConstantBuffers(this);
+
+            if (_hullShader != null)
+                _hullConstantBuffers.SetConstantBuffers(this);
+            if (_domainShader != null)
+                _domainConstantBuffers.SetConstantBuffers(this);
+            if (_geometryShader != null)
+                _geometryConstantBuffers.SetConstantBuffers(this);
 
             Textures.PlatformSetTextures(this, _d3dContext.PixelShader);
             SamplerStates.PlatformSetSamplers(this, _d3dContext.PixelShader);
@@ -1514,13 +1522,35 @@ namespace Microsoft.Xna.Framework.Graphics
             {
                 VertexTextures.PlatformSetTextures(this, _d3dContext.VertexShader);
                 VertexSamplerStates.PlatformSetSamplers(this, _d3dContext.VertexShader);
-                HullTextures.PlatformSetTextures(this, _d3dContext.HullShader);
-                HullSamplerStates.PlatformSetSamplers(this, _d3dContext.HullShader);
-                DomainTextures.PlatformSetTextures(this, _d3dContext.DomainShader);
-                DomainSamplerStates.PlatformSetSamplers(this, _d3dContext.DomainShader);
-                GeometryTextures.PlatformSetTextures(this, _d3dContext.GeometryShader);
-                GeometrySamplerStates.PlatformSetSamplers(this, _d3dContext.GeometryShader);
+
+                if (_hullShader != null)
+                {
+                    HullTextures.PlatformSetTextures(this, _d3dContext.HullShader);
+                    HullSamplerStates.PlatformSetSamplers(this, _d3dContext.HullShader);
+                }
+                if (_domainShader != null)
+                {
+                    DomainTextures.PlatformSetTextures(this, _d3dContext.DomainShader);
+                    DomainSamplerStates.PlatformSetSamplers(this, _d3dContext.DomainShader);
+                }
+                if (_geometryShader != null)
+                {
+                    GeometryTextures.PlatformSetTextures(this, _d3dContext.GeometryShader);
+                    GeometrySamplerStates.PlatformSetSamplers(this, _d3dContext.GeometryShader);
+                }
             }
+
+            _vertexShaderResources.ApplyAllResourcesToDevice(this);
+            _pixelShaderResources.ApplyAllResourcesToDevice(this);
+
+            if (_hullShader != null)
+                _hullShaderResources.ApplyAllResourcesToDevice(this);
+            if (_domainShader != null)
+                _domainShaderResources.ApplyAllResourcesToDevice(this);
+            if (_geometryShader != null)
+                _geometryShaderResources.ApplyAllResourcesToDevice(this);
+
+            _shaderResourcesSetForCompute = false;
         }
 
         private int SetUserVertexBuffer<T>(T[] vertexData, int vertexOffset, int vertexCount, VertexDeclaration vertexDecl)
@@ -1708,6 +1738,100 @@ namespace Microsoft.Xna.Framework.Graphics
                 int indexCount = GetElementCountArray(primitiveType, primitiveCount);
                 _d3dContext.DrawIndexedInstanced(indexCount, instanceCount, startIndex, baseVertex, baseInstance);
             }
+        }
+
+        private void PlatformDrawInstancedPrimitivesIndirect(PrimitiveType primitiveType, IndirectDrawBuffer indirectDrawBuffer, int alignedByteOffsetForArgs)
+        {
+            lock (_d3dContext)
+            {
+                ApplyState(true);
+
+                _d3dContext.InputAssembler.PrimitiveTopology = ToPrimitiveTopology(primitiveType);
+                _d3dContext.DrawInstancedIndirect(indirectDrawBuffer.Buffer, alignedByteOffsetForArgs);
+            }
+        }
+
+        private void PlatformDrawIndexedInstancedPrimitivesIndirect(PrimitiveType primitiveType, IndirectDrawBuffer indirectDrawBuffer, int alignedByteOffsetForArgs)
+        {
+            lock (_d3dContext)
+            {
+                ApplyState(true);
+
+                _d3dContext.InputAssembler.PrimitiveTopology = ToPrimitiveTopology(primitiveType);
+                _d3dContext.DrawIndexedInstancedIndirect(indirectDrawBuffer.Buffer, alignedByteOffsetForArgs);
+            }
+        }
+
+        private void ApplyComputeState()
+        {
+            PlatformBeginApplyState();
+
+            if (_computeShaderDirty)
+            {
+                _d3dContext.ComputeShader.Set(_computeShader == null ? null : _computeShader.ComputeShader);
+                _computeShaderDirty = false;
+
+                unchecked
+                {
+                    _graphicsMetrics._computeShaderCount++;
+                }
+            }
+
+            // If the device was just used for normal drawing, rather than compute, we need to unbind the buffers from non-compute stages.
+            // This is neccessary to make sure buffers that are written to in compute shaders,
+            // are not still set as inputs in other shader stages, as this is not allowed.
+            if (!_shaderResourcesSetForCompute)
+            {
+                ClearShaderResourcesForStage(ShaderStage.Vertex, _vertexShaderResources);
+                ClearShaderResourcesForStage(ShaderStage.Pixel, _pixelShaderResources);
+                ClearShaderResourcesForStage(ShaderStage.Hull, _hullShaderResources);
+                ClearShaderResourcesForStage(ShaderStage.Domain, _domainShaderResources);
+                ClearShaderResourcesForStage(ShaderStage.Geometry, _geometryShaderResources);
+
+                _shaderResourcesSetForCompute = true;
+            }
+
+            _computeConstantBuffers.SetConstantBuffers(this);
+
+            ComputeTextures.PlatformSetTextures(this, _d3dContext.ComputeShader);
+            ComputeSamplerStates.PlatformSetSamplers(this, _d3dContext.ComputeShader);
+
+            _computeShaderResources.ApplyAllResourcesToDevice(this);
+        }
+
+        private void UnbindWriteableComputeResources()
+        {
+            // Unbind all buffers (UAV's), otherwise they could not be used as shader inputs
+            var computeStage = (GetDXShaderStage(ShaderStage.Compute) as SharpDX.Direct3D11.ComputeShaderStage);
+            for (int i = 0; i < _computeShaderResources.MaxWriteableResources; i++)
+                computeStage.SetUnorderedAccessView(i, null);
+        }
+
+        private void PlatformDispatchCompute(int threadGroupCountX, int threadGroupCountY, int threadGroupCountZ)
+        {
+            lock (_d3dContext)
+            {
+                ApplyComputeState();
+                _d3dContext.Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+                UnbindWriteableComputeResources();
+            }
+        }
+
+        private void PlatformDispatchComputeIndirect(IndirectDrawBuffer indirectDrawBuffer, int alignedByteOffsetForArgs)
+        {
+            lock (_d3dContext)
+            {
+                ApplyComputeState();
+                _d3dContext.DispatchIndirect(indirectDrawBuffer.Buffer, alignedByteOffsetForArgs);
+                UnbindWriteableComputeResources();
+            }
+        }
+
+        private void ClearShaderResourcesForStage(ShaderStage stage, ShaderResourceCollection resourceCollection)
+        {
+            var dxStage = GetDXShaderStage(stage);
+            for (int i = 0; i < resourceCollection.MaxReadableResources; i++)
+                dxStage.SetShaderResource(i, null);
         }
 
         private void PlatformDrawInstancedPrimitivesIndirect(PrimitiveType primitiveType, VertexBuffer instanceBuffer, int alignedByteOffsetForArgs)
