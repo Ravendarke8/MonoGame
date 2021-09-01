@@ -90,7 +90,6 @@ namespace Microsoft.Xna.Framework.Graphics
         public TextureCollection VertexTextures { get; private set; }
         public TextureCollection HullTextures { get; private set; }
         public TextureCollection DomainTextures { get; private set; }
-
         public TextureCollection GeometryTextures { get; private set; }
         public TextureCollection ComputeTextures { get; private set; }
 
@@ -177,12 +176,12 @@ namespace Microsoft.Xna.Framework.Graphics
         private readonly ConstantBufferCollection _geometryConstantBuffers = new ConstantBufferCollection(ShaderStage.Geometry, 16);
         private readonly ConstantBufferCollection _computeConstantBuffers = new ConstantBufferCollection(ShaderStage.Compute, 16);
 
-        private readonly ShaderResourceCollection _vertexShaderResources = new ShaderResourceCollection(ShaderStage.Vertex, 16, 8);
-        private readonly ShaderResourceCollection _pixelShaderResources = new ShaderResourceCollection(ShaderStage.Pixel, 16, 8);
-        private readonly ShaderResourceCollection _hullShaderResources = new ShaderResourceCollection(ShaderStage.Hull, 16, 8);
-        private readonly ShaderResourceCollection _domainShaderResources = new ShaderResourceCollection(ShaderStage.Domain, 16, 8);
-        private readonly ShaderResourceCollection _geometryShaderResources = new ShaderResourceCollection(ShaderStage.Geometry, 16, 8);
-        private readonly ShaderResourceCollection _computeShaderResources = new ShaderResourceCollection(ShaderStage.Compute, 16, 8);
+        private ShaderResourceCollection _vertexShaderResources;
+        private ShaderResourceCollection _pixelShaderResources;
+        private ShaderResourceCollection _hullShaderResources;
+        private ShaderResourceCollection _domainShaderResources;
+        private ShaderResourceCollection _geometryShaderResources;
+        private ShaderResourceCollection _computeShaderResources;
 
         /// <summary>
         /// The cache of effects from unique byte streams.
@@ -208,8 +207,23 @@ namespace Microsoft.Xna.Framework.Graphics
         internal event EventHandler<PresentationEventArgs> PresentationChanged;
 
         private int _maxVertexBufferSlots;
+
         internal int MaxTextureSlots;
         internal int MaxVertexTextureSlots;
+        internal int MaxHullTextureSlots;
+        internal int MaxDomainTextureSlots;
+        internal int MaxGeometryTextureSlots;
+        internal int MaxComputeTextureSlots;
+
+        public const int MaxResourceSlotsPerShaderStage = 128; // this number is used in MGFXC to shift u-register bindings (see ShaderData.conductor.cs)
+
+        internal int MaxPixelShaderResourceSlots;
+        internal int MaxVertexShaderResourceSlots;
+        internal int MaxHullShaderResourceSlots;
+        internal int MaxDomainShaderResourceSlots;
+        internal int MaxGeometryShaderResourceSlots;
+        internal int MaxComputeShaderResourceSlots;
+        internal int MaxComputeShaderUAVSlots;
 
         public bool IsDisposed
         {
@@ -366,29 +380,32 @@ namespace Microsoft.Xna.Framework.Graphics
             DomainTextures = Textures;
             GeometryTextures = Textures;
             ComputeTextures = Textures;
-            Textures = Textures;
 
             VertexSamplerStates = SamplerStates;
             HullSamplerStates = SamplerStates;
             DomainSamplerStates = SamplerStates;
             GeometrySamplerStates = SamplerStates;
             ComputeSamplerStates = SamplerStates;
-            SamplerStates = SamplerStates;
 #else
             VertexTextures = new TextureCollection(this, MaxVertexTextureSlots);
-            HullTextures = new TextureCollection(this, MaxVertexTextureSlots);
-            DomainTextures = new TextureCollection(this, MaxVertexTextureSlots);
-            GeometryTextures = new TextureCollection(this, MaxVertexTextureSlots);
-            ComputeTextures = new TextureCollection(this, MaxVertexTextureSlots);
-            Textures = new TextureCollection(this, MaxTextureSlots);
+            HullTextures = new TextureCollection(this, MaxHullTextureSlots);
+            DomainTextures = new TextureCollection(this, MaxDomainTextureSlots);
+            GeometryTextures = new TextureCollection(this, MaxGeometryTextureSlots);
+            ComputeTextures = new TextureCollection(this, MaxComputeTextureSlots);
 
             VertexSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
-            HullSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
-            DomainSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
-            GeometrySamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
-            ComputeSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots);
-            SamplerStates = new SamplerStateCollection(this, MaxTextureSlots);
+            HullSamplerStates = new SamplerStateCollection(this, MaxHullTextureSlots);
+            DomainSamplerStates = new SamplerStateCollection(this, MaxDomainTextureSlots);
+            GeometrySamplerStates = new SamplerStateCollection(this, MaxGeometryTextureSlots);
+            ComputeSamplerStates = new SamplerStateCollection(this, MaxComputeTextureSlots);
 #endif
+
+            _vertexShaderResources = new ShaderResourceCollection(ShaderStage.Vertex, MaxVertexShaderResourceSlots, 0);
+            _pixelShaderResources = new ShaderResourceCollection(ShaderStage.Pixel, MaxPixelShaderResourceSlots, 0);
+            _hullShaderResources = new ShaderResourceCollection(ShaderStage.Hull, MaxHullShaderResourceSlots, 0);
+            _domainShaderResources = new ShaderResourceCollection(ShaderStage.Domain, MaxDomainShaderResourceSlots, 0);
+            _geometryShaderResources = new ShaderResourceCollection(ShaderStage.Geometry, MaxGeometryShaderResourceSlots, 0);
+            _computeShaderResources = new ShaderResourceCollection(ShaderStage.Compute, MaxComputeShaderResourceSlots, MaxComputeShaderUAVSlots);
 
             _blendStateAdditive = BlendState.Additive.Clone();
             _blendStateAlphaBlend = BlendState.AlphaBlend.Clone();
@@ -1201,27 +1218,27 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-        internal void SetShaderResource(ShaderStage stage, int slot, ShaderResource resource, string blockName, bool writeAcess)
+        internal void SetShaderResource(ShaderStage stage, int slot, ShaderResource resource, bool writeAcess)
         {
             switch (stage)
             {
                 case ShaderStage.Vertex:
-                    _vertexShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    _vertexShaderResources.SetResourceForBindingSlot(resource, slot, writeAcess);
                     break;
                 case ShaderStage.Pixel:
-                    _pixelShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    _pixelShaderResources.SetResourceForBindingSlot(resource, slot, writeAcess);
                     break;
                 case ShaderStage.Hull:
-                    _hullShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    _hullShaderResources.SetResourceForBindingSlot(resource, slot, writeAcess);
                     break;
                 case ShaderStage.Domain:
-                    _domainShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    _domainShaderResources.SetResourceForBindingSlot(resource, slot, writeAcess);
                     break;
                 case ShaderStage.Geometry:
-                    _geometryShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    _geometryShaderResources.SetResourceForBindingSlot(resource, slot, writeAcess);
                     break;
                 case ShaderStage.Compute:
-                    _computeShaderResources.SetResourceForBindingSlot(resource, blockName, slot, writeAcess);
+                    _computeShaderResources.SetResourceForBindingSlot(resource, slot, writeAcess);
                     break;
                 default:
                     throw new ArgumentException();

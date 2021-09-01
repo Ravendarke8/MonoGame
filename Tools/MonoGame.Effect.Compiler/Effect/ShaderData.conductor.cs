@@ -36,7 +36,7 @@ namespace MonoGame.Effect
             var options = ShaderConductor.OptionsDesc.Default;
             options.enableDebugInfo = false;
             options.shaderModel = new ShaderConductor.ShaderModel(shaderModelMajorDX, shaderModelMinorDX);
-            options.shiftAllUABuffersBindings = 16; // avoid conflict between u-registers (writeable buffers and textures) and t-registers (readonly buffers and textures)
+            options.shiftAllUABuffersBindings = 128; // avoid conflict between u-registers (writeable buffers and textures) and t-registers (readonly buffers and textures). This number is equal to GraphicsDevice.MaxResourceSlotsPerShaderStage
 
             //==============================================================
             // Choose best GLSL/ESSL target version based on DX shader model
@@ -218,8 +218,7 @@ namespace MonoGame.Effect
 
             for (int i = 0; i < storageBuffers.Count; i++)
             {
-                shaderData._shaderResources[i].Name = storageBuffers[i].instanceName;
-                shaderData._shaderResources[i].BlockName = storageBuffers[i].blockName; 
+                shaderData._shaderResources[i].Name = storageBuffers[i].name;
                 shaderData._shaderResources[i].ElementSize = storageBuffers[i].byteSize;
                 shaderData._shaderResources[i].Slot = storageBuffers[i].slot;
                 shaderData._shaderResources[i].Type = storageBuffers[i].readOnly ? ShaderResourceType.StructuredBuffer : ShaderResourceType.RWStructuredBuffer;
@@ -228,8 +227,7 @@ namespace MonoGame.Effect
             for (int i = 0; i < storageImages.Count; i++)
             {
                 int r = storageBuffers.Count + i;
-                shaderData._shaderResources[r].Name = storageImages[i].name; 
-                shaderData._shaderResources[r].BlockName = "";
+                shaderData._shaderResources[r].Name = storageImages[i].name;
                 shaderData._shaderResources[r].ElementSize = 0;
                 shaderData._shaderResources[r].Slot = storageImages[i].slot;
                 shaderData._shaderResources[r].Type = ShaderResourceType.RWTexture;
