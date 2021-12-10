@@ -30,7 +30,7 @@ namespace MonoGame.Content.Builder.Editor.Launcher
             Action runAction = null;
             var rootCommand = new RootCommand()
             {
-                Name = "mgcb-editor",
+                Name = "mgcb-editor-compute",
                 Handler = CommandHandler.Create<InvocationContext, string>((context, project) =>
                 {
                     runAction = () => platform.Run(context, project);

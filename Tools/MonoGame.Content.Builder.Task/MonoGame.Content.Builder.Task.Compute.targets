@@ -74,8 +74,8 @@
       <!-- Assemble final metadata. -->
       <ContentReference>
         <ContentDir>%(ContentFolder)/</ContentDir>
-        <ContentOutputDir>%(FullDir)bin/$(MonoGamePlatform)/%(OutputFolder)</ContentOutputDir>
-        <ContentIntermediateOutputDir>%(FullDir)obj/$(MonoGamePlatform)/$(TargetFramework)/%(OutputFolder)</ContentIntermediateOutputDir>
+		<ContentOutputDir>%(FullDir)bin/$(MonoGamePlatform)/%(OutputFolder)</ContentOutputDir>
+        <ContentIntermediateOutputDir>%(FullDir)obj/$(MonoGamePlatform)/$(TargetFramework)/%(OutputFolder)</ContentIntermediateOutputDir>  
       </ContentReference>
 
     </ItemGroup>
@@ -133,7 +133,7 @@
         - ContentDir: the relative path of the embedded folder to contain the content files
   -->
   <Target Name="RunContentBuilder" DependsOnTargets="PrepareContentBuilder">
-
+  
     <!-- Execute MGCB from the project directory so we use the correct manifest. -->
     <Exec
       Condition="'%(ContentReference.FullPath)' != ''"

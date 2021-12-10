@@ -3,13 +3,16 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <Description>The MonoGame Framework Content Builder Editor (MGCB-Editor) is a graphical tool used for editing your content projects ready for processing.</Description>
+    <Description>Customized MonoGame Framework Content Builder Editor (MGCB-Editor), with support for compute, tessellation and geometry shader.</Description>
     <BaseOutputPath>..\..\Artifacts\MonoGame.Content.Builder.Editor.Launcher</BaseOutputPath>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>mgcb-editor</ToolCommandName>
-    <PackageId>dotnet-mgcb-editor</PackageId>
+    <ToolCommandName>mgcb-editor-compute</ToolCommandName>
+    <PackageId>dotnet-mgcb-editor-compute</PackageId>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <AssemblyName>mgcb-editor</AssemblyName>
+    <Authors>cpt-max, MonoGame Team</Authors>
+    <PackageProjectUrl>https://github.com/cpt-max/MonoGame-Shader-Samples</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cpt-max/MonoGame</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

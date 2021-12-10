@@ -6,11 +6,15 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <Description>MSBuild task to automatically build content for MonoGame.</Description>
+    <PackageId>MonoGame.Content.Builder.Task.Compute</PackageId>
+    <Authors>cpt-max, MonoGame Team</Authors>
+    <RepositoryUrl>https://github.com/cpt-max/MonoGame</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/cpt-max/MonoGame-Shader-Samples</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="MonoGame.Content.Builder.Task.props" PackagePath="build" />
-    <Content Include="MonoGame.Content.Builder.Task.targets" PackagePath="build" />
+    <Content Include="MonoGame.Content.Builder.Task.Compute.props" PackagePath="build" />
+    <Content Include="MonoGame.Content.Builder.Task.Compute.targets" PackagePath="build" />
   </ItemGroup>
 
   <ItemGroup>

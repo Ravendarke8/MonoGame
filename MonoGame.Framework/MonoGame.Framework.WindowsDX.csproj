@@ -5,9 +5,9 @@
     <DefineConstants>WINDOWS;XNADESIGNPROVIDED;STBSHARP_INTERNAL</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseWindowsForms>true</UseWindowsForms>
-    <Description>The MonoGame runtime for Windows using DirectX API's.</Description>
+    <Description>Customized MonoGame runtime for Windows, with added support for compute, tessellation and geometry shader.</Description>
     <PackageTags>monogame;.net core;core;.net standard;standard;windowsdx</PackageTags>
-    <PackageId>MonoGame.Framework.WindowsDX</PackageId>
+    <PackageId>MonoGame.Framework.Compute.WindowsDX</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -61,12 +61,15 @@
     <Compile Include="..\ThirdParty\StbImageWriteSharp\src\**\*.cs" LinkBase="Utilities\StbImageWriteSharp" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="MonoGame.Framework.WindowsDX.targets" PackagePath="build" />
-  </ItemGroup>
-
+	<ItemGroup>
+		<Content Include="MonoGame.Framework.Compute.WindowsDX.targets" PackagePath="build" />
+	</ItemGroup>
+	
   <PropertyGroup>
     <UseWindowsForms>true</UseWindowsForms>
+    <Authors>cpt-max, MonoGame Team</Authors>
+    <RepositoryUrl>https://github.com/cpt-max/MonoGame</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/cpt-max/MonoGame-Shader-Samples</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
