@@ -17,26 +17,28 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Mac\Release\MGCB Editor.app\**\*">
+	<!--
+    <None Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Mac\Release\MGCB Editor.app\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </Content>
-    <Content Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Linux\Release\**\*">
+    </None>
+	-->
+	<None Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Linux\Release\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </Content>
-	<Content Include="..\..\Artifacts\MonoGame.Content.Builder\Release\**\*">
+    </None>
+	<None Include="..\..\Artifacts\MonoGame.Content.Builder\Release\**\*">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-	</Content>
-    <Content Include="mgcb-editor-linux\*">
+	</None>
+	<None Include="mgcb-editor-linux\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </Content>
-    <Content Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Windows\Release\**\*">
+    </None>
+    <None Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Windows\Release\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </Content>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
