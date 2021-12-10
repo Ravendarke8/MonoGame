@@ -1,12 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
     <DefineConstants>OPENGL;OPENAL;XNADESIGNPROVIDED;LINUX;DESKTOPGL;SUPPORTS_EFX;NETSTANDARD;STBSHARP_INTERNAL</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Description>The MonoGame runtime supporting Windows, Linux and macOS using SDL2 and OpenGL.</Description>
+    <Description>Customized MonoGame runtime for Windows, Linux and macOS, with added support for compute, tessellation and geometry shader.</Description>
     <PackageTags>monogame;.net core;core;.net standard;standard;desktopgl</PackageTags>
-    <PackageId>MonoGame.Framework.DesktopGL</PackageId>
+    <PackageId>MonoGame.Framework.Compute.DesktopGL</PackageId>
   </PropertyGroup>
 
   <!-- NETFX reference assemblies let us target .NET Framework on Mac/Linux without Mono -->
@@ -136,8 +136,14 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
 
-    <Content Include="MonoGame.Framework.DesktopGL.targets" PackagePath="build" />
+    <Content Include="MonoGame.Framework.Compute.DesktopGL.targets" PackagePath="build" />
   </ItemGroup>
+
+  <PropertyGroup>
+	<Authors>cpt-max, MonoGame Team</Authors>
+	<RepositoryUrl>https://github.com/cpt-max/MonoGame</RepositoryUrl>
+	<PackageProjectUrl>https://github.com/cpt-max/MonoGame-Shader-Samples</PackageProjectUrl>
+  </PropertyGroup>
 
   <Import Project="Platform\OpenGL.targets" />
   <Import Project="Platform\OpenGLResources.targets" />
