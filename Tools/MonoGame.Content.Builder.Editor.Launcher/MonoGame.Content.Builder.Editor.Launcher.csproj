@@ -20,7 +20,7 @@
 	<!--
     <None Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Mac\Release\MGCB Editor.app\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+	  <Link>MGCB Editor.app\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
 	-->
 	<None Include="..\..\Artifacts\MonoGame.Content.Builder.Editor\Linux\Release\**\*">
