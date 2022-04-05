@@ -938,7 +938,55 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-		public void SetRenderTargets(params RenderTargetBinding[] renderTargets)
+        //public void SetRenderTargets(DepthBuffer depthBuffer, params RenderTargetBinding[] renderTargets)
+        //{
+        //    var renderTargetCount = 0;
+        //    if (renderTargets != null)
+        //    {
+        //        renderTargetCount = renderTargets.Length;
+        //        if (renderTargetCount == 0)
+        //        {
+        //            renderTargets = null;
+        //        }
+        //    }
+
+        //    // Try to early out if the current and new bindings are equal.
+        //    if (_currentRenderTargetCount == renderTargetCount)
+        //    {
+        //        var isEqual = true;
+        //        for (var i = 0; i < _currentRenderTargetCount; i++)
+        //        {
+        //            if (_currentRenderTargetBindings[i].RenderTarget != renderTargets[i].RenderTarget ||
+        //                _currentRenderTargetBindings[i].ArraySlice != renderTargets[i].ArraySlice)
+        //            {
+        //                isEqual = false;
+        //                break;
+        //            }
+        //        }
+
+        //        if (isEqual)
+        //            return;
+        //    }
+
+        //    ApplyRenderTargets(depthBuffer, renderTargets);
+
+        //    if (renderTargetCount == 0)
+        //    {
+        //        unchecked
+        //        {
+        //            _graphicsMetrics._targetCount++;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        unchecked
+        //        {
+        //            _graphicsMetrics._targetCount += renderTargetCount;
+        //        }
+        //    }
+        //}
+
+        public void SetRenderTargets(params RenderTargetBinding[] renderTargets)
 		{
             // Avoid having to check for null and zero length.
             var renderTargetCount = 0;
@@ -986,6 +1034,58 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
             }
         }
+
+        //internal void ApplyRenderTargets(DepthBuffer depthBuffer, RenderTargetBinding[] renderTargets)
+        //{
+        //    var clearTarget = false;
+
+        //    PlatformResolveRenderTargets();
+
+        //    // Clear the current bindings.
+        //    Array.Clear(_currentRenderTargetBindings, 0, _currentRenderTargetBindings.Length);
+
+        //    int renderTargetWidth;
+        //    int renderTargetHeight;
+        //    if (renderTargets == null)
+        //    {
+        //        _currentRenderTargetCount = 0;
+
+        //        PlatformApplyDefaultRenderTarget();
+        //        clearTarget = PresentationParameters.RenderTargetUsage == RenderTargetUsage.DiscardContents;
+
+        //        renderTargetWidth = PresentationParameters.BackBufferWidth;
+        //        renderTargetHeight = PresentationParameters.BackBufferHeight;
+        //    }
+        //    else
+        //    {
+        //        // Copy the new bindings.
+        //        Array.Copy(renderTargets, _currentRenderTargetBindings, renderTargets.Length);
+        //        _currentRenderTargetCount = renderTargets.Length;
+
+        //        // Copy depth buffer binding
+
+        //        var renderTarget = PlatformApplyRenderTargets();
+
+        //        // We clear the render target if asked.
+        //        clearTarget = renderTarget.RenderTargetUsage == RenderTargetUsage.DiscardContents;
+
+        //        renderTargetWidth = renderTarget.Width;
+        //        renderTargetHeight = renderTarget.Height;
+        //    }
+
+        //    // Set the viewport to the size of the first render target.
+        //    Viewport = new Viewport(0, 0, renderTargetWidth, renderTargetHeight);
+
+        //    // Set the scissor rectangle to the size of the first render target.
+        //    ScissorRectangle = new Rectangle(0, 0, renderTargetWidth, renderTargetHeight);
+
+        //    // In XNA 4, because of hardware limitations on Xbox, when
+        //    // a render target doesn't have PreserveContents as its usage
+        //    // it is cleared before being rendered to.
+        //    if (clearTarget)
+        //        Clear(DiscardColor);
+        //}
+
 
         internal void ApplyRenderTargets(RenderTargetBinding[] renderTargets)
         {

@@ -9,10 +9,10 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public abstract partial class Texture
     {
-        private Resource _texture;
+        public Resource _texture;
 
-        private ShaderResourceView _resourceView;
-        private UnorderedAccessView _unorderedAccessView;
+        public ShaderResourceView _resourceView;
+        public UnorderedAccessView _unorderedAccessView;
 
         /// <summary>
         /// Gets the handle to a shared resource.

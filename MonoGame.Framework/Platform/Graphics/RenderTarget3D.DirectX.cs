@@ -10,7 +10,7 @@ namespace Microsoft.Xna.Framework.Graphics
     public partial class RenderTarget3D
     {
         private int _currentSlice;
-        private RenderTargetView _renderTargetView;
+        public RenderTargetView _renderTargetView;
         private DepthStencilView _depthStencilView;
 
         private void PlatformConstruct(GraphicsDevice graphicsDevice, int width, int height, bool mipMap,

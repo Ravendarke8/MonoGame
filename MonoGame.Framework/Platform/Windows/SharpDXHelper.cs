@@ -8,7 +8,7 @@ namespace Microsoft.Xna.Framework
     using Graphics;
     using SharpDX.Mathematics.Interop;
 
-    static internal class SharpDXHelper
+    static public class SharpDXHelper
     {
         static public SharpDX.DXGI.SwapEffect ToSwapEffect(PresentInterval presentInterval)
         {

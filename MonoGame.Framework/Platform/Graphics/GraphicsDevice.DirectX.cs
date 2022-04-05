@@ -34,6 +34,9 @@ namespace Microsoft.Xna.Framework.Graphics
         private int _vertexBufferSlotsUsed;
         private bool _shaderResourcesSetForCompute; // keep track of who is setting buffer resources: normal draw or compute
 
+        public SharpDX.Direct3D11.Device Device { get { return _d3dDevice; } }
+        public DeviceContext DeviceContext { get { return _d3dContext; } }
+
 #if WINDOWS_UAP
 
         // Declare Direct2D Objects

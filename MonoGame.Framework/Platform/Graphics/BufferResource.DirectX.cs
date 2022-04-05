@@ -15,6 +15,11 @@ namespace Microsoft.Xna.Framework.Graphics
         private SharpDX.Direct3D11.ShaderResourceView _shaderResourceView;
         private SharpDX.Direct3D11.UnorderedAccessView _unorderedAccessView;
 
+        public SharpDX.Direct3D11.Buffer GetDxBuffer()
+        {
+            return _buffer;
+        }
+
         internal SharpDX.Direct3D11.Buffer Buffer
         {
             get
