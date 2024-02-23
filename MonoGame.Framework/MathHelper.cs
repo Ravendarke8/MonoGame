@@ -105,7 +105,19 @@ namespace Microsoft.Xna.Framework
             // There's no check to see if min > max.
             return value;
         }
-        
+
+        public static float Clamp(float value)
+        {
+            // First we check to see if we're greater than the max
+            value = (value > 1) ? 1 : value;
+
+            // Then we check to see if we're less than the min.
+            value = (value < 0) ? 0 : value;
+
+            // There's no check to see if min > max.
+            return value;
+        }
+
         /// <summary>
         /// Restricts a value to be within a specified range.
         /// </summary>

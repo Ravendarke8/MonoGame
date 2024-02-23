@@ -108,6 +108,7 @@ namespace Microsoft.Xna.Framework
             this.Y = y;
         }
 
+
         /// <summary>
         /// Constructs a 2d vector with X and Y set to the same value.
         /// </summary>
@@ -168,6 +169,22 @@ namespace Microsoft.Xna.Framework
             value1.Y -= value2.Y;
             return value1;
         }
+
+        public static Vector2 operator -(Vector2 value1, Vector3 value2)
+        {
+            value1.X -= value2.X;
+            value1.Y -= value2.Y;
+            return value1;
+        }
+
+        public static Vector2 operator +(Vector2 value1, Vector3 value2)
+        {
+            value1.X += value2.X;
+            value1.Y += value2.Y;
+            return value1;
+        }
+
+
 
         /// <summary>
         /// Multiplies the components of two vectors by each other.
@@ -418,6 +435,12 @@ namespace Microsoft.Xna.Framework
         /// <param name="value2">The second vector.</param>
         /// <returns>The distance between two vectors.</returns>
         public static float Distance(Vector2 value1, Vector2 value2)
+        {
+            float v1 = value1.X - value2.X, v2 = value1.Y - value2.Y;
+            return MathF.Sqrt((v1 * v1) + (v2 * v2));
+        }
+
+        public static float Distance(Vector2 value1, Vector4 value2)
         {
             float v1 = value1.X - value2.X, v2 = value1.Y - value2.Y;
             return MathF.Sqrt((v1 * v1) + (v2 * v2));

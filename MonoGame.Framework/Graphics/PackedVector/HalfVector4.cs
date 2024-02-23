@@ -71,6 +71,24 @@ namespace Microsoft.Xna.Framework.Graphics.PackedVector
                 HalfTypeHelper.Convert((ushort)(packedValue >> 0x30)));
         }
 
+        public Vector3 ToVector3()
+        {
+            return new Vector3(
+                HalfTypeHelper.Convert((ushort)packedValue),
+                HalfTypeHelper.Convert((ushort)(packedValue >> 0x10)),
+                HalfTypeHelper.Convert((ushort)(packedValue >> 0x20))
+                );
+        }
+
+        public Vector3 ToVector3AlphaMulti()
+        {
+            return new Vector3(
+                HalfTypeHelper.Convert((ushort)packedValue),
+                HalfTypeHelper.Convert((ushort)(packedValue >> 0x10)),
+                HalfTypeHelper.Convert((ushort)(packedValue >> 0x20))
+                ) * HalfTypeHelper.Convert((ushort)(packedValue >> 0x30));
+        }
+
         /// <summary>
         /// Directly gets or sets the packed representation of the value.
         /// </summary>

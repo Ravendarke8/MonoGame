@@ -9,7 +9,7 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class RenderTarget2D
     {
-        internal RenderTargetView[] _renderTargetViews;
+        public RenderTargetView[] _renderTargetViews;
         internal DepthStencilView _depthStencilView;
         private SharpDX.Direct3D11.Texture2D _msTexture;
 

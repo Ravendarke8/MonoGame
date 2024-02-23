@@ -165,7 +165,7 @@ namespace Microsoft.Xna.Framework
         // Stored as RGBA with R in the least significant octet:
         // |-------|-------|-------|-------
         // A       B       G       R
-        private uint _packedValue;
+        public uint _packedValue;
 	  
         /// <summary>
         /// Constructs an RGBA color from a packed value.
